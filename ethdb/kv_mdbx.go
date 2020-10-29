@@ -1300,6 +1300,10 @@ type MdbxDupSortCursor struct {
 	*MdbxCursor
 }
 
+func (c *MdbxDupSortCursor) Internal() *mdbx.Cursor {
+	return c.c
+}
+
 func (c *MdbxDupSortCursor) initCursor() error {
 	if c.c != nil {
 		return nil
