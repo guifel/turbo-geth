@@ -254,7 +254,7 @@ func fToMdbx(ctx context.Context, to string) error {
 	logEvery := time.NewTicker(15 * time.Second)
 	defer logEvery.Stop()
 
-	commitEvery := time.NewTicker(5 * time.Minute)
+	commitEvery := time.NewTicker(5 * time.Second)
 	defer commitEvery.Stop()
 
 	type A interface {
@@ -265,9 +265,9 @@ func fToMdbx(ctx context.Context, to string) error {
 	//r.Read()
 	_ = dstTx.(ethdb.BucketMigrator).ClearBucket(dbutils.CurrentStateBucket)
 
+	fileScanner := bufio.NewScanner(file)
 	cc := dstTx.CursorDupSort(dbutils.CurrentStateBucket)
 	_, _, _ = cc.First()
-	fileScanner := bufio.NewScanner(file)
 	c := cc.(A).Internal()
 	i := 0
 	for fileScanner.Scan() {
@@ -279,6 +279,17 @@ func fToMdbx(ctx context.Context, to string) error {
 		default:
 		case <-logEvery.C:
 			log.Info("Progress", "key", fmt.Sprintf("%x", k))
+		case <-commitEvery.C:
+			if err2 := dstTx.Commit(ctx); err2 != nil {
+				return err2
+			}
+			dstTx, err = dst.Begin(ctx, nil, ethdb.RW)
+			if err != nil {
+				return err
+			}
+			cc = dstTx.CursorDupSort(dbutils.CurrentStateBucket)
+			_, _, _ = cc.First()
+			c = cc.(A).Internal()
 		case <-ctx.Done():
 			return ctx.Err()
 		}
