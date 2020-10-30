@@ -279,17 +279,17 @@ func fToMdbx(ctx context.Context, to string) error {
 		default:
 		case <-logEvery.C:
 			log.Info("Progress", "key", fmt.Sprintf("%x", k))
-		case <-commitEvery.C:
-			if err2 := dstTx.Commit(ctx); err2 != nil {
-				return err2
-			}
-			dstTx, err = dst.Begin(ctx, nil, ethdb.RW)
-			if err != nil {
-				return err
-			}
-			cc = dstTx.CursorDupSort(dbutils.CurrentStateBucket)
-			_, _, _ = cc.First()
-			c = cc.(A).Internal()
+		//case <-commitEvery.C:
+		//	if err2 := dstTx.Commit(ctx); err2 != nil {
+		//		return err2
+		//	}
+		//	dstTx, err = dst.Begin(ctx, nil, ethdb.RW)
+		//	if err != nil {
+		//		return err
+		//	}
+		//	cc = dstTx.CursorDupSort(dbutils.CurrentStateBucket)
+		//	_, _, _ = cc.First()
+		//	c = cc.(A).Internal()
 		case <-ctx.Done():
 			return ctx.Err()
 		}
