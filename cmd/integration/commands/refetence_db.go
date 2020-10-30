@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
@@ -273,23 +272,14 @@ func fToMdbx(ctx context.Context, to string) error {
 	for fileScanner.Scan() {
 		i++
 		kv := strings.Split(fileScanner.Text(), ",")
-		k, _ := hex.DecodeString(kv[0])
-		v, _ := hex.DecodeString(kv[1])
+		k := []byte(kv[0])
+		//k, _ := hex.DecodeString(kv[0])
+		v := []byte(kv[1])
+		//v, _ := hex.DecodeString(kv[1])
 		select {
 		default:
 		case <-logEvery.C:
 			log.Info("Progress", "key", fmt.Sprintf("%x", k))
-		//case <-commitEvery.C:
-		//	if err2 := dstTx.Commit(ctx); err2 != nil {
-		//		return err2
-		//	}
-		//	dstTx, err = dst.Begin(ctx, nil, ethdb.RW)
-		//	if err != nil {
-		//		return err
-		//	}
-		//	cc = dstTx.CursorDupSort(dbutils.CurrentStateBucket)
-		//	_, _, _ = cc.First()
-		//	c = cc.(A).Internal()
 		case <-ctx.Done():
 			return ctx.Err()
 		}
