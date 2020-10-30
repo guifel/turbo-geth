@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ledgerwatch/turbo-geth/cmd/utils"
+	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/common/dbutils"
 	"github.com/ledgerwatch/turbo-geth/ethdb"
 	"github.com/ledgerwatch/turbo-geth/ethdb/mdbx"
@@ -270,6 +271,7 @@ func fToMdbx(ctx context.Context, to string) error {
 	_, _, _ = cc.First()
 	c := cc.(A).Internal()
 	i := 0
+	x := common.FromHex("9f13f88230a70de90ed5fa41ba35a5fb78bc55d11cc9406f17d314fb67047ac70000000000000001")
 	for fileScanner.Scan() {
 		i++
 		kv := strings.Split(fileScanner.Text(), ",")
@@ -283,15 +285,11 @@ func fToMdbx(ctx context.Context, to string) error {
 			return ctx.Err()
 		}
 
+		if bytes.HasPrefix(k, x[:30]) {
+			fmt.Printf("Last mile: %x, %x\n", k, v)
+		}
 		if err = c.Put(k, v, mdbx.AppendDup); err != nil {
 			fmt.Printf("Failed on: %x, %x\n", k, v)
-			_, _, _ = cc.Seek(k[:10])
-			for k, v, err := c.Get(nil, nil, mdbx.Next); k != nil; k, v, err = c.Get(nil, nil, mdbx.Next) {
-				if err != nil {
-					return err
-				}
-				fmt.Printf("before: %x %x\n", k, v)
-			}
 			return err
 		}
 	}
