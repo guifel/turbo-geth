@@ -275,7 +275,6 @@ func fToMdbx(ctx context.Context, to string) error {
 		kv := strings.Split(fileScanner.Text(), ",")
 		k, _ := hex.DecodeString(kv[0])
 		v, _ := hex.DecodeString(kv[1])
-		fmt.Printf("%x, %x\n", k, v)
 		select {
 		default:
 		case <-logEvery.C:
