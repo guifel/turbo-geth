@@ -285,7 +285,7 @@ func fToMdbx(ctx context.Context, to string) error {
 			return ctx.Err()
 		}
 
-		if bytes.HasPrefix(k, x[:30]) {
+		if bytes.HasPrefix(k, x[:20]) {
 			fmt.Printf("Last mile: %x, %x\n", k, v)
 		}
 		if err = c.Put(k, v, mdbx.AppendDup); err != nil {
