@@ -11,7 +11,7 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>. */
 
-#define MDBX_ALLOY 1n#define MDBX_BUILD_SOURCERY 9841d0290164f3458317aeeb50fd9784b9f323706a9cdb3fdb3911cfdee9ac90_v0_9_1_66_g16c900b
+#define MDBX_ALLOY 1n#define MDBX_BUILD_SOURCERY ac778f95aecf244fc5fb5c0991c5788c81e83cab8d0c2e525a71e8f8194f06da_v0_9_1_64_gb1d21d5
 #ifdef MDBX_CONFIG_H
 #include MDBX_CONFIG_H
 #endif
@@ -1979,7 +1979,7 @@ typedef struct MDBX_meta {
 typedef struct MDBX_page {
   union {
     struct MDBX_page *mp_next; /* for in-memory list of freed pages */
-    uint64_t mp_txnid;         /* txnid that committed this page */
+    uint64_t mp_txnid;         /* txnid during which the page has been COW-ed */
   };
   uint16_t mp_leaf2_ksize; /* key size if this is a LEAF2 page */
 #define P_BRANCH 0x01      /* branch page */
@@ -18565,7 +18565,8 @@ static int mdbx_cursor_del0(MDBX_cursor *mc) {
       }
       if (m3->mc_ki[mc->mc_top] >= ki ||
           /* moved to right sibling */ m3->mc_pg[mc->mc_top] != mp) {
-        if (m3->mc_xcursor && !(m3->mc_flags & C_EOF)) {
+        mdbx_cassert(m3, (m3->mc_flags & C_EOF) == 0);
+        if (m3->mc_xcursor) {
           MDBX_node *node =
               page_node(m3->mc_pg[m3->mc_top], m3->mc_ki[m3->mc_top]);
           /* If this node has dupdata, it may need to be reinited
@@ -25244,9 +25245,9 @@ __dll_export
         0,
         9,
         1,
-        66,
-        {"2020-10-29T00:55:42+03:00", "5508ca10835e54ed767ad7b02a8480b8e161a244", "16c900b0a126728d23203bd12918820ee51f162d",
-         "v0.9.1-66-g16c900b"},
+        64,
+        {"2020-10-27T20:02:17+03:00", "178f48dce8b12fb9fa17f4c04a84c74cb9bb0cf2", "b1d21d571fb9ea1eec7c000b04d29730ce5ec067",
+         "v0.9.1-64-gb1d21d5"},
         sourcery};
 
 __dll_export
