@@ -284,6 +284,7 @@ func fToMdbx(ctx context.Context, to string) error {
 		}
 
 		if err = c.Put(k, v, mdbx.AppendDup); err != nil {
+			fmt.Printf("%x, %x\n", k, v)
 			return err
 		}
 	}
