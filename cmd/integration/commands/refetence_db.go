@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
@@ -241,14 +242,21 @@ func fToMdbx(ctx context.Context, to string) error {
 	}
 	defer file.Close()
 
-	dst := ethdb.NewMDBX().Path(to).MustOpen()
-	dstTx, err1 := dst.Begin(ctx, nil, ethdb.RW)
-	if err1 != nil {
-		return err1
+	file2, err := os.Open("/media/alex/evo/alex_full2.log")
+	if err != nil {
+		fmt.Printf("Failed to open file: %s", err)
+		os.Exit(1)
 	}
-	defer func() {
-		dstTx.Rollback()
-	}()
+	defer file2.Close()
+
+	//dst := ethdb.NewMDBX().Path(to).MustOpen()
+	//dstTx, err1 := dst.Begin(ctx, nil, ethdb.RW)
+	//if err1 != nil {
+	//	return err1
+	//}
+	//defer func() {
+	//	dstTx.Rollback()
+	//}()
 
 	logEvery := time.NewTicker(15 * time.Second)
 	defer logEvery.Stop()
@@ -262,20 +270,20 @@ func fToMdbx(ctx context.Context, to string) error {
 
 	//r := csv.NewReader(bufio.NewReaderSize(file, 1024*1024))
 	//r.Read()
-	_ = dstTx.(ethdb.BucketMigrator).ClearBucket(dbutils.CurrentStateBucket)
+	//_ = dstTx.(ethdb.BucketMigrator).ClearBucket(dbutils.CurrentStateBucket)
 
 	fileScanner := bufio.NewScanner(file)
-	cc := dstTx.CursorDupSort(dbutils.CurrentStateBucket)
-	_, _, _ = cc.First()
-	c := cc.(A).Internal()
+	//cc := dstTx.CursorDupSort(dbutils.CurrentStateBucket)
+	//_, _, _ = cc.First()
+	//c := cc.(A).Internal()
 	i := 0
 	for fileScanner.Scan() {
 		i++
 		kv := strings.Split(fileScanner.Text(), ",")
-		k := []byte(kv[0])
-		//k, _ := hex.DecodeString(kv[0])
-		v := []byte(kv[1])
-		//v, _ := hex.DecodeString(kv[1])
+		//k := []byte(kv[0])
+		k, _ := hex.DecodeString(kv[0])
+		//v := []byte(kv[1])
+		v, _ := hex.DecodeString(kv[1])
 		select {
 		default:
 		case <-logEvery.C:
@@ -284,19 +292,21 @@ func fToMdbx(ctx context.Context, to string) error {
 			return ctx.Err()
 		}
 
-		if err = c.Put(k, v, mdbx.AppendDup); err != nil {
-			fmt.Printf("%x, %x\n", k, v)
-			return err
-		}
+		fmt.Fprintf(file2, "%s,%s\n", k, v)
+
+		//if err = c.Put(k, v, mdbx.AppendDup); err != nil {
+		//	fmt.Printf("%x, %x\n", k, v)
+		//	return err
+		//}
 	}
 	err = fileScanner.Err()
 	if err != nil {
 		panic(err)
 	}
-	err = dstTx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
+	//err = dstTx.Commit(context.Background())
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }
