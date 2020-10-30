@@ -265,8 +265,10 @@ func fToMdbx(ctx context.Context, to string) error {
 	//r.Read()
 	_ = dstTx.(ethdb.BucketMigrator).ClearBucket(dbutils.CurrentStateBucket)
 
+	cc := dstTx.CursorDupSort(dbutils.CurrentStateBucket)
+	_, _, _ = cc.First()
 	fileScanner := bufio.NewScanner(file)
-	c := dstTx.CursorDupSort(dbutils.CurrentStateBucket).(A).Internal()
+	c := cc.(A).Internal()
 	i := 0
 	for fileScanner.Scan() {
 		i++
