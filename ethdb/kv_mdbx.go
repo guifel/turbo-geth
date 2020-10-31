@@ -575,6 +575,9 @@ func (tx *mdbxTx) ExistsBucket(bucket string) bool {
 }
 
 func (tx *mdbxTx) Commit(ctx context.Context) error {
+	a, _ := tx.Cursor(dbutils.PlainStateBucket).Count()
+	fmt.Printf("count before commit: %d\n", a)
+
 	if tx.db.env == nil {
 		return fmt.Errorf("db closed")
 	}
