@@ -1300,6 +1300,10 @@ func (c *MdbxCursor) Append(k []byte, v []byte) error {
 	}
 	b := c.bucketCfg
 	if b.AutoDupSortKeysConversion {
+		if c.bucketName == dbutils.PlainStateBucket {
+			fmt.Printf("APPEND reformat before: %x, %x\n", k, v)
+		}
+
 		from, to := b.DupFromLen, b.DupToLen
 		if len(k) != from && len(k) >= to {
 			return fmt.Errorf("dupsort bucket: %s, can have keys of len==%d and len<%d. key: %x", c.bucketName, from, to, k)
@@ -1308,6 +1312,9 @@ func (c *MdbxCursor) Append(k []byte, v []byte) error {
 		if len(k) == from {
 			v = append(k[to:], v...)
 			k = k[:to]
+		}
+		if c.bucketName == dbutils.PlainStateBucket {
+			fmt.Printf("APPEND reformat after: %x, %x, %d, %d\n", k, v, from, to)
 		}
 	}
 
