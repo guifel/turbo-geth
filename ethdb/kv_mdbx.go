@@ -769,6 +769,12 @@ func (c *MdbxCursor) setRange(k []byte) ([]byte, []byte, error) {
 	return c.c.Get(k, nil, mdbx.SetRange)
 }
 func (c *MdbxCursor) getBothRange(k, v []byte) ([]byte, []byte, error) {
+	// TODO: can remove after https://github.com/erthink/libmdbx/issues/130
+	_, _, err := c.set(k)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return c.c.Get(k, v, mdbx.GetBothRange)
 }
 func (c *MdbxCursor) firstDup() ([]byte, error) {
@@ -1222,15 +1228,6 @@ func (c *MdbxCursor) SeekExact(key []byte) ([]byte, error) {
 	b := c.bucketCfg
 	if b.AutoDupSortKeysConversion && len(key) == b.DupFromLen {
 		from, to := b.DupFromLen, b.DupToLen
-		// TODO: can remove after https://github.com/erthink/libmdbx/issues/130
-		_, _, err := c.set(key[:to])
-		if err != nil {
-			if mdbx.IsNotFound(err) {
-				return nil, nil
-			}
-			return nil, err
-		}
-
 		_, v, err := c.getBothRange(key[:to], key[to:])
 		if err != nil {
 			if mdbx.IsNotFound(err) {
