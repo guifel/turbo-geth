@@ -1252,7 +1252,7 @@ func (c *MdbxCursor) SeekExact(key []byte) ([]byte, error) {
 		}
 		if len(key) < to || len(v) < from-to {
 			fmt.Printf("1: %x, %x\n", key, v)
-			fmt.Printf("1: %d, %d\n", from, to)
+			fmt.Printf("1: %d, %d, %T\n", from, to, c)
 		}
 		if !bytes.Equal(key[to:], v[:from-to]) {
 			return nil, nil
@@ -1333,13 +1333,13 @@ func (c *MdbxDupSortCursor) initCursor() error {
 		return nil
 	}
 
-	//if c.bucketCfg.AutoDupSortKeysConversion {
-	//	return fmt.Errorf("class MdbxDupSortCursor not compatible with AutoDupSortKeysConversion buckets")
-	//}
-	//
-	//if c.bucketCfg.Flags&mdbx.DupSort == 0 {
-	//	return fmt.Errorf("class MdbxDupSortCursor can be used only if bucket created with flag mdbx.DupSort")
-	//}
+	if c.bucketCfg.AutoDupSortKeysConversion {
+		return fmt.Errorf("class MdbxDupSortCursor not compatible with AutoDupSortKeysConversion buckets")
+	}
+
+	if c.bucketCfg.Flags&mdbx.DupSort == 0 {
+		return fmt.Errorf("class MdbxDupSortCursor can be used only if bucket created with flag mdbx.DupSort")
+	}
 
 	return c.MdbxCursor.initCursor()
 }
