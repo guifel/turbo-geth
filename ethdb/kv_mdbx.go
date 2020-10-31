@@ -1292,9 +1292,6 @@ func (c *MdbxCursor) Append(k []byte, v []byte) error {
 	if len(k) == 0 {
 		return fmt.Errorf("mdbx doesn't support empty keys. bucket: %s", c.bucketName)
 	}
-	if c.bucketName == dbutils.PlainStateBucket {
-		fmt.Printf("APPEND1: %x, %x\n", k, v)
-	}
 
 	if c.c == nil {
 		if err := c.initCursor(); err != nil {
@@ -1315,9 +1312,15 @@ func (c *MdbxCursor) Append(k []byte, v []byte) error {
 	}
 
 	if b.Flags&mdbx.DupSort != 0 {
+		if c.bucketName == dbutils.PlainStateBucket {
+			fmt.Printf("APPEND1: %x, %x\n", k, v)
+		}
 		return c.appendDup(common.CopyBytes(k), common.CopyBytes(v))
 	}
 
+	if c.bucketName == dbutils.PlainStateBucket {
+		fmt.Printf("APPEND2: %x, %x\n", k, v)
+	}
 	return c.append(k, v)
 }
 
