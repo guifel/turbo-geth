@@ -473,8 +473,12 @@ func (tx *mdbxTx) CreateBucket(name string) error {
 		return err
 	}
 	cnfCopy.DBI = dbutils.DBI(dbi)
-
 	tx.db.buckets[name] = cnfCopy
+
+	if name == dbutils.PlainStateBucket {
+		a, _ := tx.Cursor(dbutils.PlainStateBucket).Count()
+		fmt.Printf("count: %d\n", a)
+	}
 
 	return nil
 }
