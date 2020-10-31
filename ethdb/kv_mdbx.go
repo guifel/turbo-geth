@@ -11,7 +11,6 @@ import (
 	"path"
 	"runtime"
 	"sync"
-	"time"
 
 	"github.com/c2h5oh/datasize"
 	"github.com/ledgerwatch/turbo-geth/common"
@@ -476,8 +475,10 @@ func (tx *mdbxTx) CreateBucket(name string) error {
 	tx.db.buckets[name] = cnfCopy
 
 	if name == dbutils.PlainStateBucket {
-		a, _ := tx.Cursor(dbutils.PlainStateBucket).Count()
-		fmt.Printf("count: %d\n", a)
+		c := tx.Cursor(dbutils.PlainStateBucket)
+		a, _ := c.Count()
+		kk, vv, ee := c.First()
+		fmt.Printf("count: %d, %x, %x, %s\n", a, kk, vv, ee)
 	}
 
 	return nil
