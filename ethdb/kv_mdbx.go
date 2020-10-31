@@ -1288,7 +1288,9 @@ func (c *MdbxCursor) Append(k []byte, v []byte) error {
 		return fmt.Errorf("mdbx doesn't support empty keys. bucket: %s", c.bucketName)
 	}
 	//if bytes.HasPrefix(k, x) {
-	fmt.Printf("APPEND1: %x, %x\n", k, v)
+	if c.bucketName == dbutils.PlainStateBucket {
+		fmt.Printf("APPEND1: %x, %x\n", k, v)
+	}
 	//}
 
 	if c.c == nil {
