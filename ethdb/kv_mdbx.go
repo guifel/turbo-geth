@@ -547,6 +547,16 @@ func (tx *mdbxTx) dropEvenIfBucketIsNotDeprecated(name string) error {
 	if err := tx.tx.Drop(mdbx.DBI(dbi), true); err != nil {
 		return err
 	}
+	_, err := tx.tx.Commit()
+	if err != nil {
+		return err
+	}
+	txn, err := tx.db.env.BeginTxn(nil, mdbx.TxRW)
+	if err != nil {
+		return err
+	}
+	txn.RawRead = true
+	tx.tx = txn
 	cnfCopy := tx.db.buckets[name]
 	cnfCopy.DBI = NonExistingDBI
 	tx.db.buckets[name] = cnfCopy
