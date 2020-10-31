@@ -1301,7 +1301,7 @@ func (c *MdbxCursor) Append(k []byte, v []byte) error {
 	b := c.bucketCfg
 	if b.AutoDupSortKeysConversion {
 		if c.bucketName == dbutils.PlainStateBucket {
-			fmt.Printf("APPEND reformat before: %x, %x\n", k, v)
+			fmt.Printf("APPEND reformat before: %x, %x, %d\n", k, v, len(k))
 		}
 
 		from, to := b.DupFromLen, b.DupToLen
