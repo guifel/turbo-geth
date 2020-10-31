@@ -1230,6 +1230,10 @@ func (c *MdbxCursor) SeekExact(key []byte) ([]byte, error) {
 			}
 			return nil, err
 		}
+		if len(key) < to || len(v) < from-to {
+			fmt.Printf("1: %x, %x\n", key, v)
+			fmt.Printf("1: %d, %d\n", from, to)
+		}
 		if !bytes.Equal(key[to:], v[:from-to]) {
 			return nil, nil
 		}
