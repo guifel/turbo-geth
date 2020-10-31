@@ -1182,7 +1182,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 			return err
 		}
 
-		if bytes.Equal(key, x) {
+		if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
 			fmt.Printf("PUT1: %x, %x\n", key, value)
 			fmt.Printf("PUT1: %d, %d\n", from, to)
 		}
@@ -1194,7 +1194,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 	_, v, err := c.getBothRange(key, value[:from-to])
 	if err != nil { // if key not found, or found another one - then just insert
 		if mdbx.IsNotFound(err) {
-			if bytes.Equal(key, x) {
+			if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
 				fmt.Printf("PUT2: %x, %x\n", key, value)
 				fmt.Printf("PUT2: %d, %d\n", from, to)
 			}
@@ -1205,7 +1205,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 
 	if bytes.Equal(v[:from-to], value[:from-to]) {
 		if len(v) == len(value) { // in DupSort case mdbx.Current works only with values of same length
-			if bytes.Equal(key, x) {
+			if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
 				fmt.Printf("PUT3: %x, %x\n", key, value)
 				fmt.Printf("PUT3: %d, %d\n", from, to)
 			}
@@ -1217,7 +1217,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 		}
 	}
 
-	if bytes.Equal(key, x) {
+	if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
 		fmt.Printf("PUT4: %x, %x\n", key, value)
 		fmt.Printf("PUT4: %d, %d\n", from, to)
 	}
@@ -1260,7 +1260,7 @@ func (c *MdbxCursor) SeekExact(key []byte) ([]byte, error) {
 			}
 			return nil, err
 		}
-		if len(key) < to || len(v) < from-to {
+		if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
 			fmt.Printf("1: %x, %x\n", key, v)
 			fmt.Printf("1: %d, %d, %T\n", from, to, c)
 		}
