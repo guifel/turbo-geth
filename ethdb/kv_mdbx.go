@@ -1287,9 +1287,9 @@ func (c *MdbxCursor) Append(k []byte, v []byte) error {
 	if len(k) == 0 {
 		return fmt.Errorf("mdbx doesn't support empty keys. bucket: %s", c.bucketName)
 	}
-	if bytes.HasPrefix(k, x) {
-		fmt.Printf("APPEND1: %x, %x\n", k, v)
-	}
+	//if bytes.HasPrefix(k, x) {
+	fmt.Printf("APPEND1: %x, %x\n", k, v)
+	//}
 
 	if c.c == nil {
 		if err := c.initCursor(); err != nil {
