@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/c2h5oh/datasize"
+	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/common/dbutils"
 	"github.com/ledgerwatch/turbo-geth/ethdb/mdbx"
 	"github.com/ledgerwatch/turbo-geth/log"
@@ -1153,6 +1154,8 @@ func (c *MdbxCursor) Put(key []byte, value []byte) error {
 	return c.put(key, value)
 }
 
+var x = common.FromHex("cde4de4d3baa9f2cb0253de1b86271152fbf786400000000000000010000000000000000000000000000000000000000000000000000000000000001")
+
 func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 	b := c.bucketCfg
 	from, to := b.DupFromLen, b.DupToLen
@@ -1169,7 +1172,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 			return err
 		}
 
-		if len(key) < to || len(value) < from-to {
+		if bytes.Equal(key, x) {
 			fmt.Printf("PUT1: %x, %x\n", key, value)
 			fmt.Printf("PUT1: %d, %d\n", from, to)
 		}
@@ -1181,7 +1184,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 	_, v, err := c.getBothRange(key, value[:from-to])
 	if err != nil { // if key not found, or found another one - then just insert
 		if mdbx.IsNotFound(err) {
-			if len(key) < to || len(value) < from-to {
+			if bytes.Equal(key, x) {
 				fmt.Printf("PUT2: %x, %x\n", key, value)
 				fmt.Printf("PUT2: %d, %d\n", from, to)
 			}
@@ -1192,7 +1195,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 
 	if bytes.Equal(v[:from-to], value[:from-to]) {
 		if len(v) == len(value) { // in DupSort case mdbx.Current works only with values of same length
-			if len(key) < to || len(value) < from-to {
+			if bytes.Equal(key, x) {
 				fmt.Printf("PUT3: %x, %x\n", key, value)
 				fmt.Printf("PUT3: %d, %d\n", from, to)
 			}
@@ -1204,7 +1207,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 		}
 	}
 
-	if len(key) < to || len(value) < from-to {
+	if bytes.Equal(key, x) {
 		fmt.Printf("PUT4: %x, %x\n", key, value)
 		fmt.Printf("PUT4: %d, %d\n", from, to)
 	}
