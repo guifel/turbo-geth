@@ -1165,6 +1165,7 @@ func (c *MdbxCursor) Put(key []byte, value []byte) error {
 }
 
 var x = common.FromHex("cde4de4d3baa9f2cb0253de1b86271152fbf786400")
+var xv = common.FromHex("0209a349d36d80ec578000")
 
 func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 	b := c.bucketCfg
@@ -1182,7 +1183,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 			return err
 		}
 
-		if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
+		if c.bucketName == dbutils.PlainStateBucket && bytes.Contains(value, xv) {
 			fmt.Printf("PUT1: %x, %x\n", key, value)
 			fmt.Printf("PUT1: %d, %d\n", from, to)
 		}
@@ -1194,7 +1195,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 	_, v, err := c.getBothRange(key, value[:from-to])
 	if err != nil { // if key not found, or found another one - then just insert
 		if mdbx.IsNotFound(err) {
-			if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
+			if c.bucketName == dbutils.PlainStateBucket && bytes.Contains(value, xv) {
 				fmt.Printf("PUT2: %x, %x\n", key, value)
 				fmt.Printf("PUT2: %d, %d\n", from, to)
 			}
@@ -1205,7 +1206,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 
 	if bytes.Equal(v[:from-to], value[:from-to]) {
 		if len(v) == len(value) { // in DupSort case mdbx.Current works only with values of same length
-			if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
+			if c.bucketName == dbutils.PlainStateBucket && bytes.Contains(value, xv) {
 				fmt.Printf("PUT3: %x, %x\n", key, value)
 				fmt.Printf("PUT3: %d, %d\n", from, to)
 			}
@@ -1217,7 +1218,7 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 		}
 	}
 
-	if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
+	if c.bucketName == dbutils.PlainStateBucket && bytes.Contains(value, xv) {
 		fmt.Printf("PUT4: %x, %x\n", key, value)
 		fmt.Printf("PUT4: %d, %d\n", from, to)
 	}
@@ -1238,6 +1239,10 @@ func (c *MdbxCursor) PutCurrent(key []byte, value []byte) error {
 	if b.AutoDupSortKeysConversion && len(key) == b.DupFromLen {
 		value = append(key[b.DupToLen:], value...)
 		key = key[:b.DupToLen]
+	}
+
+	if c.bucketName == dbutils.PlainStateBucket && bytes.Contains(value, xv) {
+		fmt.Printf("PUT current4: %x, %x\n", key, value)
 	}
 
 	return c.putCurrent(key, value)
@@ -1287,11 +1292,9 @@ func (c *MdbxCursor) Append(k []byte, v []byte) error {
 	if len(k) == 0 {
 		return fmt.Errorf("mdbx doesn't support empty keys. bucket: %s", c.bucketName)
 	}
-	//if bytes.HasPrefix(k, x) {
-	if c.bucketName == dbutils.PlainStateBucket && len(k) > 20 {
+	if c.bucketName == dbutils.PlainStateBucket && bytes.Contains(v, xv) {
 		fmt.Printf("APPEND1: %x, %x\n", k, v)
 	}
-	//}
 
 	if c.c == nil {
 		if err := c.initCursor(); err != nil {
