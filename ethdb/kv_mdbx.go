@@ -1261,7 +1261,7 @@ func (c *MdbxCursor) SeekExact(key []byte) ([]byte, error) {
 			return nil, err
 		}
 		if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
-			fmt.Printf("1: %x, %x\n", key, v)
+			fmt.Printf("1: %x, %x, %d\n", key, v, len(key))
 			fmt.Printf("1: %d, %d, %T\n", from, to, c)
 		}
 		if !bytes.Equal(key[to:], v[:from-to]) {
