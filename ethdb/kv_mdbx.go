@@ -538,7 +538,7 @@ func (tx *mdbxTx) dropEvenIfBucketIsNotDeprecated(name string) error {
 		txn.RawRead = true
 		tx.tx = txn
 	}
-
+	fmt.Printf("DropL %s\n", name)
 	if err := tx.tx.Drop(mdbx.DBI(dbi), true); err != nil {
 		return err
 	}
