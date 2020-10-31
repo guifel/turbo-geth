@@ -1153,7 +1153,7 @@ func (c *MdbxCursor) Put(key []byte, value []byte) error {
 		}
 	}
 	if bytes.HasPrefix(key, x) {
-		fmt.Printf("APPEND1: %x, %x\n", key, value)
+		fmt.Printf("Put01: %x, %x\n", key, value)
 	}
 
 	b := c.bucketCfg
