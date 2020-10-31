@@ -1253,7 +1253,7 @@ func (c *MdbxCursor) SeekExact(key []byte) ([]byte, error) {
 	b := c.bucketCfg
 	if b.AutoDupSortKeysConversion && len(key) == b.DupFromLen {
 		from, to := b.DupFromLen, b.DupToLen
-		_, v, err := c.getBothRange(key[:to], key[to:])
+		kk, v, err := c.getBothRange(key[:to], key[to:])
 		if err != nil {
 			if mdbx.IsNotFound(err) {
 				return nil, nil
@@ -1261,7 +1261,7 @@ func (c *MdbxCursor) SeekExact(key []byte) ([]byte, error) {
 			return nil, err
 		}
 		if c.bucketName == dbutils.PlainStateBucket && len(key) > 20 {
-			fmt.Printf("1: %x, %x, %d\n", key, v, len(key))
+			fmt.Printf("1: %x, %x, %d -> %x\n", key, v, len(key), kk)
 			fmt.Printf("1: %d, %d, %T\n", from, to, c)
 		}
 		if !bytes.Equal(key[to:], v[:from-to]) {
