@@ -11,7 +11,7 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>. */
 
-#define MDBX_ALLOY 1n#define MDBX_BUILD_SOURCERY ac778f95aecf244fc5fb5c0991c5788c81e83cab8d0c2e525a71e8f8194f06da_v0_9_1_64_gb1d21d5
+#define MDBX_ALLOY 1n#define MDBX_BUILD_SOURCERY b337076dfe38673ab00e22e35095ce4fe45b6d8d29edf14497e9bdf74d8f1214_v0_9_1_73_g61f0ee8
 #ifdef MDBX_CONFIG_H
 #include MDBX_CONFIG_H
 #endif
@@ -1979,7 +1979,7 @@ typedef struct MDBX_meta {
 typedef struct MDBX_page {
   union {
     struct MDBX_page *mp_next; /* for in-memory list of freed pages */
-    uint64_t mp_txnid;         /* txnid during which the page has been COW-ed */
+    uint64_t mp_txnid;         /* txnid that committed this page */
   };
   uint16_t mp_leaf2_ksize; /* key size if this is a LEAF2 page */
 #define P_BRANCH 0x01      /* branch page */
@@ -2837,7 +2837,7 @@ static __maybe_unused __inline void mdbx_jitter4testing(bool tiny) {
   ((rc) != MDBX_RESULT_TRUE && (rc) != MDBX_RESULT_FALSE)
 
 /* Internal error codes, not exposed outside libmdbx */
-#define MDBX_NO_ROOT (MDBX_LAST_LMDB_ERRCODE + 10)
+#define MDBX_NO_ROOT (MDBX_LAST_ADDED_ERRCODE + 10)
 
 /* Debugging output value of a cursor DBI: Negative in a sub-cursor. */
 #define DDBI(mc)                                                               \
@@ -6169,7 +6169,7 @@ static int mdbx_txn_end(MDBX_txn *txn, unsigned mode);
 
 static int __must_check_result mdbx_page_get(MDBX_cursor *mc, pgno_t pgno,
                                              MDBX_page **mp, int *lvl,
-                                             const txnid_t pp_txnid);
+                                             txnid_t pp_txnid);
 static int __must_check_result mdbx_page_search_root(MDBX_cursor *mc,
                                                      const MDBX_val *key,
                                                      int flags);
@@ -8292,9 +8292,12 @@ skip_cache:
       }
       const unsigned gc_len = MDBX_PNL_SIZE(gc_pnl);
       /* TODO: provide a user-configurable threshold */
-      const unsigned threshold_2_stop_gc_reclaiming = MDBX_PNL_MAX / 2;
+      const unsigned threshold_2_stop_gc_reclaiming = MDBX_PNL_MAX / 4;
       if (unlikely(gc_len + MDBX_PNL_SIZE(txn->tw.reclaimed_pglist) >
-                   threshold_2_stop_gc_reclaiming)) {
+                   threshold_2_stop_gc_reclaiming) &&
+          (pgno_add(txn->mt_next_pgno, num) <= txn->mt_geo.upper ||
+           gc_len + MDBX_PNL_SIZE(txn->tw.reclaimed_pglist) >=
+               MDBX_PNL_MAX / 16 * 15)) {
         /* Stop reclaiming to avoid overflow the page list.
          * This is a rare case while search for a continuously multi-page region
          * in a large database. https://github.com/erthink/libmdbx/issues/123 */
@@ -14337,7 +14340,7 @@ static int mdbx_cursor_push(MDBX_cursor *mc, MDBX_page *mp) {
  *
  * Returns 0 on success, non-zero on failure. */
 __hot static int mdbx_page_get(MDBX_cursor *mc, pgno_t pgno, MDBX_page **ret,
-                               int *lvl, const txnid_t pp_txnid) {
+                               int *lvl, txnid_t pp_txnid) {
   MDBX_txn *txn = mc->mc_txn;
   if (unlikely(pgno >= txn->mt_next_pgno)) {
     mdbx_error("page #%" PRIaPGNO " beyond next-pgno", pgno);
@@ -14362,8 +14365,11 @@ __hot static int mdbx_page_get(MDBX_cursor *mc, pgno_t pgno, MDBX_page **ret,
        * because the dirty list got full. Bring this page
        * back in from the map (but don't unspill it here,
        * leave that unless page_touch happens again). */
-      if (txn->tw.spill_pages && mdbx_pnl_exist(txn->tw.spill_pages, pgno << 1))
+      if (txn->tw.spill_pages &&
+          mdbx_pnl_exist(txn->tw.spill_pages, pgno << 1)) {
+        pp_txnid = txn->mt_txnid;
         goto spilled;
+      }
       p = mdbx_dpl_find(txn->tw.dirtylist, pgno);
       if (p)
         goto dirty;
@@ -18565,8 +18571,7 @@ static int mdbx_cursor_del0(MDBX_cursor *mc) {
       }
       if (m3->mc_ki[mc->mc_top] >= ki ||
           /* moved to right sibling */ m3->mc_pg[mc->mc_top] != mp) {
-        mdbx_cassert(m3, (m3->mc_flags & C_EOF) == 0);
-        if (m3->mc_xcursor) {
+        if (m3->mc_xcursor && !(m3->mc_flags & C_EOF)) {
           MDBX_node *node =
               page_node(m3->mc_pg[m3->mc_top], m3->mc_ki[m3->mc_top]);
           /* If this node has dupdata, it may need to be reinited
@@ -25245,9 +25250,9 @@ __dll_export
         0,
         9,
         1,
-        64,
-        {"2020-10-27T20:02:17+03:00", "178f48dce8b12fb9fa17f4c04a84c74cb9bb0cf2", "b1d21d571fb9ea1eec7c000b04d29730ce5ec067",
-         "v0.9.1-64-gb1d21d5"},
+        73,
+        {"2020-10-31T03:08:41+03:00", "ed57c901e29bdcd0ff337d547606dbc06b9a0e56", "61f0ee891fea4444a32246f88dd0651ed516f2fd",
+         "v0.9.1-73-g61f0ee8"},
         sourcery};
 
 __dll_export

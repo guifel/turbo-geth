@@ -2001,7 +2001,7 @@ typedef struct MDBX_meta {
 typedef struct MDBX_page {
   union {
     struct MDBX_page *mp_next; /* for in-memory list of freed pages */
-    uint64_t mp_txnid;         /* txnid during which the page has been COW-ed */
+    uint64_t mp_txnid;         /* txnid that committed this page */
   };
   uint16_t mp_leaf2_ksize; /* key size if this is a LEAF2 page */
 #define P_BRANCH 0x01      /* branch page */
@@ -2859,7 +2859,7 @@ static __maybe_unused __inline void mdbx_jitter4testing(bool tiny) {
   ((rc) != MDBX_RESULT_TRUE && (rc) != MDBX_RESULT_FALSE)
 
 /* Internal error codes, not exposed outside libmdbx */
-#define MDBX_NO_ROOT (MDBX_LAST_LMDB_ERRCODE + 10)
+#define MDBX_NO_ROOT (MDBX_LAST_ADDED_ERRCODE + 10)
 
 /* Debugging output value of a cursor DBI: Negative in a sub-cursor. */
 #define DDBI(mc)                                                               \
@@ -3858,9 +3858,7 @@ int main(int argc, char *argv[]) {
         goto txn_abort;
       }
 
-      if (batch == 10000 || txn_info.txn_space_dirty > MEGABYTE * 16) {
-        mdbx_cursor_close(mc);
-        mc = nullptr;
+      if (batch == 10000 || txn_info.txn_space_dirty > MEGABYTE * 256) {
         rc = mdbx_txn_commit(txn);
         if (unlikely(rc != MDBX_SUCCESS)) {
           error("mdbx_txn_commit", rc);
@@ -3873,9 +3871,9 @@ int main(int argc, char *argv[]) {
           error("mdbx_txn_begin", rc);
           goto env_close;
         }
-        rc = mdbx_cursor_open(txn, dbi, &mc);
+        rc = mdbx_cursor_bind(txn, mc, dbi);
         if (unlikely(rc != MDBX_SUCCESS)) {
-          error("mdbx_cursor_open", rc);
+          error("mdbx_cursor_bind", rc);
           goto txn_abort;
         }
       }
