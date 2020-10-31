@@ -1164,7 +1164,7 @@ func (c *MdbxCursor) Put(key []byte, value []byte) error {
 	return c.put(key, value)
 }
 
-var x = common.FromHex("cde4de4d3baa9f2cb0253de1b86271152fbf786400000000000000010000000000000000000000000000000000000000000000000000000000000001")
+var x = common.FromHex("cde4de4d3baa9f2cb0253de1b86271152fbf786400")
 
 func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 	b := c.bucketCfg
