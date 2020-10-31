@@ -1296,6 +1296,10 @@ func (c *MdbxCursor) Append(k []byte, v []byte) error {
 		}
 	}
 
+	if bytes.Equal(k, x) {
+		fmt.Printf("APPEND1: %x, %x\n", k, v)
+	}
+
 	if b.Flags&mdbx.DupSort != 0 {
 		return c.appendDup(k, v)
 	}
