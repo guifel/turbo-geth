@@ -1268,6 +1268,11 @@ func (c *MdbxCursor) SeekExact(key []byte) ([]byte, error) {
 		if c.bucketName == dbutils.PlainStateBucket {
 			fmt.Printf("1: %x, %x, %d -> %x, %x\n", key[:to], key[to:], len(key), kk, v)
 			fmt.Printf("1: %d, %d, %T\n", from, to, c)
+			pk, pv, pe := c.Prev()
+			fmt.Printf("Prev: %x, %x, %s\n", pk, pv, pe)
+			pk, pv, pe = c.Next()
+			pk, pv, pe = c.Next()
+			fmt.Printf("Next: %x, %x, %s\n", pk, pv, pe)
 		}
 		if !bytes.Equal(key[to:], v[:from-to]) {
 			return nil, nil
