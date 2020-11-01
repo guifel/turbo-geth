@@ -771,12 +771,6 @@ func (c *MdbxCursor) setRange(k []byte) ([]byte, []byte, error) {
 	return c.c.Get(k, nil, mdbx.SetRange)
 }
 func (c *MdbxCursor) getBothRange(k, v []byte) ([]byte, []byte, error) {
-	// TODO: can remove after https://github.com/erthink/libmdbx/issues/130
-	_, _, err := c.set(k)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	return c.c.Get(k, v, mdbx.GetBothRange)
 }
 func (c *MdbxCursor) firstDup() ([]byte, error) {
