@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ledgerwatch/turbo-geth/cmd/utils"
-	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/common/dbutils"
 	"github.com/ledgerwatch/turbo-geth/ethdb"
 	"github.com/ledgerwatch/turbo-geth/ethdb/mdbx"
@@ -270,10 +269,7 @@ func fToMdbx(ctx context.Context, to string) error {
 	cc := dstTx.CursorDupSort(dbutils.CurrentStateBucket)
 	_, _, _ = cc.First()
 	c := cc.(A).Internal()
-	i := 0
-	x := common.FromHex("9f13f88230a70de90ed5fa41ba35a5fb78bc55d11cc9406f17d314fb67047ac70000000000000001")
 	for fileScanner.Scan() {
-		i++
 		kv := strings.Split(fileScanner.Text(), ",")
 		k, _ := hex.DecodeString(kv[0])
 		v, _ := hex.DecodeString(kv[1])
@@ -285,11 +281,7 @@ func fToMdbx(ctx context.Context, to string) error {
 			return ctx.Err()
 		}
 
-		if bytes.HasPrefix(k, x[:20]) {
-			fmt.Printf("Last mile: %x, %x\n", k, v)
-		}
 		if err = c.Put(k, v, mdbx.AppendDup); err != nil {
-			fmt.Printf("Failed on: %x, %x\n", k, v)
 			return err
 		}
 	}
