@@ -493,49 +493,49 @@ func (tx *mdbxTx) dropEvenIfBucketIsNotDeprecated(name string) error {
 	}
 	logEvery := time.NewTicker(30 * time.Second)
 	defer logEvery.Stop()
-	for {
-		s, err := tx.BucketStat(name)
-		if err != nil {
-			return err
-		}
-		if s.Entries == 0 {
-			break
-		}
-		c := tx.Cursor(name)
-		i := 0
-		var k []byte
-		for k, _, err = c.First(); k != nil; k, _, err = c.First() {
-			if err != nil {
-				return err
-			}
-			err = c.DeleteCurrent()
-			if err != nil {
-				return err
-			}
-			i++
-			if i == 100_000 {
-				break
-			}
-
-			select {
-			default:
-			case <-logEvery.C:
-				log.Info("dropping bucket", "name", name, "current key", fmt.Sprintf("%x", k))
-			}
-		}
-
-		c.Close()
-		_, err = tx.tx.Commit()
-		if err != nil {
-			return err
-		}
-		txn, err := tx.db.env.BeginTxn(nil, mdbx.TxRW)
-		if err != nil {
-			return err
-		}
-		txn.RawRead = true
-		tx.tx = txn
-	}
+	//for {
+	//	s, err := tx.BucketStat(name)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	if s.Entries == 0 {
+	//		break
+	//	}
+	//	c := tx.Cursor(name)
+	//	i := 0
+	//	var k []byte
+	//	for k, _, err = c.First(); k != nil; k, _, err = c.First() {
+	//		if err != nil {
+	//			return err
+	//		}
+	//		err = c.DeleteCurrent()
+	//		if err != nil {
+	//			return err
+	//		}
+	//		i++
+	//		if i == 100_000 {
+	//			break
+	//		}
+	//
+	//		select {
+	//		default:
+	//		case <-logEvery.C:
+	//			log.Info("dropping bucket", "name", name, "current key", fmt.Sprintf("%x", k))
+	//		}
+	//	}
+	//
+	//	c.Close()
+	//	_, err = tx.tx.Commit()
+	//	if err != nil {
+	//		return err
+	//	}
+	//	txn, err := tx.db.env.BeginTxn(nil, mdbx.TxRW)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	txn.RawRead = true
+	//	tx.tx = txn
+	//}
 	if err := tx.tx.Drop(mdbx.DBI(dbi), true); err != nil {
 		return err
 	}
