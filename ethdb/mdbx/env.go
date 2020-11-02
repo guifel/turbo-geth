@@ -86,7 +86,7 @@ const (
 	DbgDoNotChange     = C.MDBX_DBG_DONTCHANGE
 )
 
-const (
+var (
 	LoggerDoNotChange = C.MDBX_LOGGER_DONTCHANGE
 )
 
