@@ -6129,7 +6129,7 @@ static __always_inline void mdbx_dpl_clear(MDBX_DPL dl) {
 /*----------------------------------------------------------------------------*/
 
 uint8_t mdbx_runtime_flags = MDBX_RUNTIME_FLAGS_INIT;
-uint8_t mdbx_loglevel = MDBX_LOG_FATAL;
+uint8_t mdbx_loglevel = MDBX_LOG_TRACE;
 MDBX_debug_func *mdbx_debug_logger;
 
 static bool mdbx_refund(MDBX_txn *txn);
