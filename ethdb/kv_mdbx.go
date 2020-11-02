@@ -78,7 +78,7 @@ func (opts MdbxOpts) Open() (KV, error) {
 	}
 
 	//res := env.SetDebug(mdbx.LogLvlTrace, mdbx.DbgAudit, env.StderrLogger()) // temporary disable error, because it works if call it 1 time, but returns error if call it twice in same process (what often happening in tests)
-	res := env.SetDebug(mdbx.LogLvlTrace, mdbx.DbgAudit, mdbx.LoggerDoNotChange) // temporary disable error, because it works if call it 1 time, but returns error if call it twice in same process (what often happening in tests)
+	res := env.SetDebug(mdbx.LogLvlExtra, mdbx.DbgAudit, mdbx.LoggerDoNotChange) // temporary disable error, because it works if call it 1 time, but returns error if call it twice in same process (what often happening in tests)
 	fmt.Printf("dbgres: %d\n", res)
 
 	err = env.SetMaxDBs(100)
