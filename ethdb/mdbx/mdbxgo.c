@@ -2,7 +2,6 @@
  * Helper utilities for github.com/bmatsuo/lmdb-go/lmdb
  * */
 #include <string.h>
-#include <stdio.h>
 #include "_cgo_export.h"
 #include "mdbxgo.h"
 #include "dist/mdbx.h"
@@ -147,41 +146,15 @@ int mdbxgo_dcmp(MDBX_txn *txn, MDBX_dbi dbi, char *adata, size_t an, char *bdata
     return mdbx_dcmp(txn, dbi, &a, &b);
 }
 
-void mdbxgo_log_stderr(MDBX_log_level_t loglevel, const char *function,
+MDBX_debug_func mdbxgo_log_stderr(MDBX_log_level_t loglevel, const char *function,
                              int line, const char *msg,
                              va_list args) MDBX_CXX17_NOEXCEPT {
-    va_log2(level, msg, args);
+    fprintf(stderr, msg, args);
 }
 
 MDBX_debug_func *mdbxgo_stderr_logger() {
   return mdbxgo_log_stderr;
 }
 
-static void va_log2(MDBX_log_level_t level, const char *msg, va_list args) {
-  static const char *const prefixes[] = {
-      "!!!fatal: ",       " ! " /* error */,      " ~ " /* warning */,
-      "   " /* notice */, "   // " /* verbose */, "   //// " /* debug */,
-      "   ////// " /* trace */
-  };
 
-  FILE *out = stderr;
-  if (level <= MDBX_LOG_ERROR) {
-    total_problems++;
-    out = stderr;
-  }
-
-  if (!quiet && verbose + 1 >= (unsigned)level) {
-    fflush(nullptr);
-    fputs(prefixes[level], out);
-    vfprintf(out, msg, args);
-    if (msg[strlen(msg) - 1] != '\n')
-      fputc('\n', out);
-    fflush(nullptr);
-  }
-
-  if (level == MDBX_LOG_FATAL) {
-    exit(EXIT_FAILURE_MDBX);
-    abort();
-  }
-}
 
