@@ -128,7 +128,7 @@ func (opts MdbxOpts) Open() (KV, error) {
 	}
 
 	flags |= mdbx.LifoReclaim
-	//flags |= mdbx.Coalesce
+	flags |= mdbx.Coalesce
 	err = env.Open(opts.path, flags, 0664)
 	if err != nil {
 		return nil, fmt.Errorf("%w, path: %s", err, opts.path)
