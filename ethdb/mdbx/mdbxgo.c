@@ -2,6 +2,7 @@
  * Helper utilities for github.com/bmatsuo/lmdb-go/lmdb
  * */
 #include <string.h>
+#include <stdio.h>
 #include "_cgo_export.h"
 #include "mdbxgo.h"
 #include "dist/mdbx.h"
