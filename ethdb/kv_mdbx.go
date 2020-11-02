@@ -78,7 +78,7 @@ func (opts MdbxOpts) Open() (KV, error) {
 	}
 
 	//res := env.SetDebug(mdbx.LogLvlTrace, mdbx.DbgAudit, env.StderrLogger()) // temporary disable error, because it works if call it 1 time, but returns error if call it twice in same process (what often happening in tests)
-	_ = env.SetDebug(mdbx.LogLvlDoNotChange, mdbx.DbgDoNotChange, mdbx.LoggerDoNotChange) // temporary disable error, because it works if call it 1 time, but returns error if call it twice in same process (what often happening in tests)
+	//_ = env.SetDebug(mdbx.LogLvlDoNotChange, mdbx.DbgDoNotChange, mdbx.LoggerDoNotChange) // temporary disable error, because it works if call it 1 time, but returns error if call it twice in same process (what often happening in tests)
 
 	err = env.SetMaxDBs(100)
 	if err != nil {
@@ -128,7 +128,7 @@ func (opts MdbxOpts) Open() (KV, error) {
 	}
 
 	flags |= mdbx.LifoReclaim
-	flags |= mdbx.Coalesce
+	//flags |= mdbx.Coalesce
 	err = env.Open(opts.path, flags, 0664)
 	if err != nil {
 		return nil, fmt.Errorf("%w, path: %s", err, opts.path)
@@ -1170,7 +1170,6 @@ func (c *MdbxCursor) putDupSort(key []byte, value []byte) error {
 			}
 			return err
 		}
-
 		return nil
 	}
 
