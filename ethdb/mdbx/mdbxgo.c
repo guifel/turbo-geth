@@ -150,8 +150,10 @@ int mdbxgo_dcmp(MDBX_txn *txn, MDBX_dbi dbi, char *adata, size_t an, char *bdata
 void mdbxgo_log_stderr(MDBX_log_level_t loglevel, const char *function,
                              int line, const char *msg,
                              va_list args) MDBX_CXX17_NOEXCEPT {
+    char *result;
+    vasprintf (&result, "line: %d ", args);
+    fprint(stderr, result);
     fprintf(stderr, msg, args);
-    fprintf(stderr, "line: %d\n", line);
 }
 
 MDBX_debug_func *mdbxgo_stderr_logger() {
