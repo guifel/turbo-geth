@@ -152,7 +152,7 @@ void mdbxgo_log_stderr(MDBX_log_level_t loglevel, const char *function,
                              va_list args) MDBX_CXX17_NOEXCEPT {
     char *result;
     vasprintf (&result, "line: %d ", args);
-    fprint(stderr, result);
+    fprintf(stderr, result, args);
     fprintf(stderr, msg, args);
 }
 
