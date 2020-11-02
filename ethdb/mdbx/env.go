@@ -86,6 +86,10 @@ const (
 	DbgDoNotChange     = C.MDBX_DBG_DONTCHANGE
 )
 
+const (
+	LoggerDoNotChange = C.MDBX_LOGGER_DONTCHANGE
+)
+
 // DBI is a handle for a database in an Env.
 //
 // See MDBX_dbi
