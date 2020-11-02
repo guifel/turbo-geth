@@ -104,7 +104,7 @@ func (opts MdbxOpts) Open() (KV, error) {
 		}
 	}
 
-	if err = env.SetGeometry(-1, -1, int(opts.mapSize), int(1*datasize.GB), -1, -1); err != nil {
+	if err = env.SetGeometry(-1, -1, int(opts.mapSize), int(10*datasize.GB), -1, -1); err != nil {
 		return nil, err
 	}
 
@@ -116,12 +116,14 @@ func (opts MdbxOpts) Open() (KV, error) {
 		return nil, fmt.Errorf("could not create dir: %s, %w", opts.path, err)
 	}
 
-	var flags uint = mdbx.NoReadahead | mdbx.Durable
+	var flags uint = mdbx.NoReadahead
 	if opts.readOnly {
 		flags |= mdbx.Readonly
 	}
 	if opts.inMem {
 		flags |= mdbx.NoMetaSync | mdbx.SafeNoSync
+	} else {
+		flags |= mdbx.Durable
 	}
 	if opts.exclusive {
 		flags |= mdbx.Exclusive
