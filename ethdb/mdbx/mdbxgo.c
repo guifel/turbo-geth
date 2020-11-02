@@ -151,7 +151,7 @@ void mdbxgo_log_stderr(MDBX_log_level_t loglevel, const char *function,
                              int line, const char *msg,
                              va_list args) MDBX_CXX17_NOEXCEPT {
 
-    fprintf(stderr, "line: %"Z"u\n", line);
+    fprintf(stderr, "line: %u\n", line);
     fprintf(stderr, msg, args);
 }
 
