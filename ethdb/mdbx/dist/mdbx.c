@@ -11,7 +11,7 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>. */
 
-#define MDBX_ALLOY 1n#define MDBX_BUILD_SOURCERY 77e2da3d40f07b06cccb0660fecb01da6f807ad7c0e52b37970b05bbcf1606cc_v0_9_1_82_g21d2af9
+#define MDBX_ALLOY 1n#define MDBX_BUILD_SOURCERY cb3a410d9ae2a7b1dd1a0fc18f1718f328f12e21a310bc437f01cb5953f07d02_v0_9_1_82_g21d2af9_dirty
 #ifdef MDBX_CONFIG_H
 #include MDBX_CONFIG_H
 #endif
@@ -10236,6 +10236,7 @@ static __inline void clean_reserved_gc_pnl(MDBX_env *env, MDBX_val pnl) {
     memset(pnl.iov_base, 0, pnl.iov_len);
 }
 
+
 /* Cleanup reclaimed GC records, than save the retired-list as of this
  * transaction to GC (aka freeDB). This recursive changes the reclaimed-list
  * loose-list and retired-list. Keep trying until it stabilizes. */
@@ -10916,6 +10917,7 @@ bailout_notracking:
   mdbx_trace("<<< %u loops, rc = %d", loop, rc);
   return rc;
 }
+
 
 static int mdbx_flush_iov(MDBX_txn *const txn, struct iovec *iov,
                           unsigned iov_items, size_t iov_off,
@@ -25256,7 +25258,7 @@ __dll_export
         1,
         82,
         {"2020-11-01T00:39:19+03:00", "92dc2e7242cc44c42945812618a5cb06b2412140", "21d2af9e902ba6e3220651996754427ff9ac361d",
-         "v0.9.1-82-g21d2af9"},
+         "v0.9.1-82-g21d2af9-dirty"},
         sourcery};
 
 __dll_export
