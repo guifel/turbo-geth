@@ -147,7 +147,7 @@ int mdbxgo_dcmp(MDBX_txn *txn, MDBX_dbi dbi, char *adata, size_t an, char *bdata
     return mdbx_dcmp(txn, dbi, &a, &b);
 }
 
-MDBX_debug_func mdbxgo_log_stderr(MDBX_log_level_t loglevel, const char *function,
+void mdbxgo_log_stderr(MDBX_log_level_t loglevel, const char *function,
                              int line, const char *msg,
                              va_list args) MDBX_CXX17_NOEXCEPT {
     fprintf(stderr, msg, args);
