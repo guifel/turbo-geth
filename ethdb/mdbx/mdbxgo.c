@@ -2,6 +2,7 @@
  * Helper utilities for github.com/bmatsuo/lmdb-go/lmdb
  * */
 #include <string.h>
+#include <stdio.h>
 #include "_cgo_export.h"
 #include "mdbxgo.h"
 #include "dist/mdbx.h"
@@ -145,3 +146,16 @@ int mdbxgo_dcmp(MDBX_txn *txn, MDBX_dbi dbi, char *adata, size_t an, char *bdata
     MDBXGO_SET_VAL(&b, bn, bdata);
     return mdbx_dcmp(txn, dbi, &a, &b);
 }
+
+void mdbxgo_log_stderr(MDBX_log_level_t loglevel, const char *function,
+                             int line, const char *msg,
+                             va_list args) MDBX_CXX17_NOEXCEPT {
+    fprintf(stderr, "mdbx: %d:%s\n", line, msg);
+}
+
+MDBX_debug_func *mdbxgo_stderr_logger() {
+  return mdbxgo_log_stderr;
+}
+
+
+
