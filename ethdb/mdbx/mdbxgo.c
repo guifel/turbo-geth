@@ -150,7 +150,8 @@ int mdbxgo_dcmp(MDBX_txn *txn, MDBX_dbi dbi, char *adata, size_t an, char *bdata
 void mdbxgo_log_stderr(MDBX_log_level_t loglevel, const char *function,
                              int line, const char *msg,
                              va_list args) MDBX_CXX17_NOEXCEPT {
-    fprintf(stderr, "line: %d ", line);
+
+    fprintf(stderr, "line: %"Z"u\n", line);
     fprintf(stderr, msg, args);
 }
 
