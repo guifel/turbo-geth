@@ -1184,7 +1184,7 @@ func (c *LmdbCursor) putDupSort(key []byte, value []byte) error {
 
 		err := c.putNoOverwrite(key, value)
 		if err != nil {
-			if mdbx.IsKeyExists(err) {
+			if lmdb.IsKeyExists(err) {
 				return c.putCurrent(key, value)
 			}
 			return err
