@@ -48,7 +48,8 @@ var (
 	// PlainAccountChangeSetBucket keeps changesets of accounts ("plain state")
 	// key - encoded timestamp(block number)
 	// value - encoded ChangeSet{k - address v - account(encoded).
-	PlainAccountChangeSetBucket = "PLAIN-ACS"
+	PlainAccountChangeSetBucket  = "PLAIN-ACS"
+	PlainAccountChangeSetBucket2 = "PLAIN-ACS2"
 
 	// PlainStorageChangeSetBucket keeps changesets of storage ("plain state")
 	// key - encoded timestamp(block number)
@@ -240,6 +241,7 @@ var Buckets = []string{
 	CallFromIndex,
 	CallToIndex,
 	Log,
+	PlainAccountChangeSetBucket2,
 }
 
 // DeprecatedBuckets - list of buckets which can be programmatically deleted - for example after migration
@@ -249,6 +251,9 @@ var DeprecatedBuckets = []string{
 	CurrentStateBucketOld1,
 	PlainStateBucketOld1,
 	IntermediateTrieHashBucketOld1,
+	"uncles",
+	"uncle",
+	"eth_tx",
 }
 
 type CustomComparator string
@@ -311,6 +316,12 @@ var BucketsConfigs = BucketsCfg{
 		AutoDupSortKeysConversion: true,
 		DupFromLen:                72,
 		DupToLen:                  40,
+	},
+	PlainAccountChangeSetBucket2: {
+		Flags: DupSort,
+		//	AutoDupSortKeysConversion: true,
+		//	DupFromLen:                72,
+		//	DupToLen:                  40,
 	},
 	PlainStateBucket: {
 		Flags:                     DupSort,
