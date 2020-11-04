@@ -311,7 +311,7 @@ func toMdbx(ctx context.Context, from, to string) error {
 	logEvery := time.NewTicker(15 * time.Second)
 	defer logEvery.Stop()
 
-	commitEvery := time.NewTicker(5 * time.Minute)
+	commitEvery := time.NewTicker(30 * time.Second)
 	defer commitEvery.Stop()
 
 	for name, b := range dbutils.BucketsConfigs {

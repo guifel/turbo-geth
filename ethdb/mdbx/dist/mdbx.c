@@ -11,7 +11,7 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>. */
 
-#define MDBX_ALLOY 1n#define MDBX_BUILD_SOURCERY 72331c7047c03f55d356947ed37d703eede6ad719d3313e99c0d7069d1f5b58c_v0_9_1_83_g2179f93
+#define MDBX_ALLOY 1n#define MDBX_BUILD_SOURCERY 77e2da3d40f07b06cccb0660fecb01da6f807ad7c0e52b37970b05bbcf1606cc_v0_9_1_82_g21d2af9
 #ifdef MDBX_CONFIG_H
 #include MDBX_CONFIG_H
 #endif
@@ -10236,43 +10236,6 @@ static __inline void clean_reserved_gc_pnl(MDBX_env *env, MDBX_val pnl) {
     memset(pnl.iov_base, 0, pnl.iov_len);
 }
 
-#pragma push_macro("mdbx_trace")
-#pragma push_macro("mdbx_debug")
-#pragma push_macro("mdbx_verbose")
-#pragma push_macro("mdbx_notice")
-#pragma push_macro("mdbx_warning")
-#pragma push_macro("mdbx_error")
-#pragma push_macro("mdbx_assert")
-
-#undef mdbx_trace
-#define mdbx_trace(fmt, ...)                                                   \
-  mdbx_debug_log(MDBX_LOG_NOTICE, __func__, __LINE__, fmt "\n", __VA_ARGS__)
-
-#undef mdbx_debug
-#define mdbx_debug(fmt, ...)                                                   \
-  mdbx_debug_log(MDBX_LOG_NOTICE, __func__, __LINE__, fmt "\n", __VA_ARGS__)
-
-#undef mdbx_verbose
-#define mdbx_verbose(fmt, ...)                                                 \
-  mdbx_debug_log(MDBX_LOG_NOTICE, __func__, __LINE__, fmt "\n", __VA_ARGS__)
-
-#undef mdbx_notice
-#define mdbx_notice(fmt, ...)                                                  \
-  mdbx_debug_log(MDBX_LOG_NOTICE, __func__, __LINE__, fmt "\n", __VA_ARGS__)
-
-#undef mdbx_warning
-#define mdbx_warning(fmt, ...)                                                 \
-  mdbx_debug_log(MDBX_LOG_WARN, __func__, __LINE__, fmt "\n", __VA_ARGS__)
-
-#undef mdbx_error
-#define mdbx_error(fmt, ...)                                                   \
-  mdbx_debug_log(MDBX_LOG_ERROR, __func__, __LINE__, fmt "\n", __VA_ARGS__)
-
-#undef mdbx_assert
-#define mdbx_assert(env, expr) mdbx_ensure(env, expr)
-
-#pragma GCC optimize("-O0")
-
 /* Cleanup reclaimed GC records, than save the retired-list as of this
  * transaction to GC (aka freeDB). This recursive changes the reclaimed-list
  * loose-list and retired-list. Keep trying until it stabilizes. */
@@ -10953,16 +10916,6 @@ bailout_notracking:
   mdbx_trace("<<< %u loops, rc = %d", loop, rc);
   return rc;
 }
-
-#pragma pop_macro("mdbx_trace")
-#pragma pop_macro("mdbx_debug")
-#pragma pop_macro("mdbx_verbose")
-#pragma pop_macro("mdbx_notice")
-#pragma pop_macro("mdbx_warning")
-#pragma pop_macro("mdbx_error")
-#pragma pop_macro("mdbx_assert")
-
-#pragma GCC reset_options
 
 static int mdbx_flush_iov(MDBX_txn *const txn, struct iovec *iov,
                           unsigned iov_items, size_t iov_off,
@@ -25301,9 +25254,9 @@ __dll_export
         0,
         9,
         1,
-        83,
-        {"2020-11-02T17:35:00+03:00", "a59c1ea2c356bf9d032aab32760ede00acc51115", "2179f9397cfca1a0055cc670be15a3231785b49c",
-         "v0.9.1-83-g2179f93"},
+        82,
+        {"2020-11-01T00:39:19+03:00", "92dc2e7242cc44c42945812618a5cb06b2412140", "21d2af9e902ba6e3220651996754427ff9ac361d",
+         "v0.9.1-82-g21d2af9"},
         sourcery};
 
 __dll_export
