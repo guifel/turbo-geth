@@ -111,7 +111,7 @@ func (opts MdbxOpts) Open() (KV, error) {
 		}
 	}
 
-	if err = env.SetGeometry(-1, -1, int(opts.mapSize), int(10*datasize.GB), -1, -1); err != nil {
+	if err = env.SetGeometry(-1, -1, int(opts.mapSize), int(1*datasize.GB), -1, -1); err != nil {
 		return nil, err
 	}
 
@@ -136,7 +136,7 @@ func (opts MdbxOpts) Open() (KV, error) {
 		flags |= mdbx.Exclusive
 	}
 
-	//flags |= mdbx.LifoReclaim
+	flags |= mdbx.LifoReclaim
 	flags |= mdbx.Coalesce
 	err = env.Open(opts.path, flags, 0664)
 	if err != nil {
