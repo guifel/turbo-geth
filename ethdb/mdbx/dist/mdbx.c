@@ -11,7 +11,7 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>. */
 
-#define MDBX_ALLOY 1n#define MDBX_BUILD_SOURCERY cb3a410d9ae2a7b1dd1a0fc18f1718f328f12e21a310bc437f01cb5953f07d02_v0_9_1_82_g21d2af9_dirty
+#define MDBX_ALLOY 1n#define MDBX_BUILD_SOURCERY c86e3337e0cd3a6fa01f069d806633bdbeb2be3661e9696d5ec4cf89364a4fd9_v0_9_1_83_gbde8085
 #ifdef MDBX_CONFIG_H
 #include MDBX_CONFIG_H
 #endif
@@ -6630,16 +6630,26 @@ static __maybe_unused void mdbx_page_list(MDBX_page *mp) {
       (mc)->mc_xcursor->mx_cursor.mc_pg[0] = node_data(xr_node);               \
   } while (0)
 
+static __maybe_unused bool is_tracked(const MDBX_cursor *mc) {
+  for (MDBX_cursor *scan = mc->mc_txn->mt_cursors[mc->mc_dbi]; scan;
+       scan = scan->mc_next)
+    if (mc == ((mc->mc_flags & C_SUB) ? &scan->mc_xcursor->mx_cursor : scan))
+      return true;
+  return false;
+}
+
 /* Perform act while tracking temporary cursor mn */
 #define WITH_CURSOR_TRACKING(mn, act)                                          \
   do {                                                                         \
     mdbx_cassert(&(mn),                                                        \
                  mn.mc_txn->mt_cursors != NULL /* must be not rdonly txt */);  \
+    mdbx_cassert(&(mn), !is_tracked(&(mn)));                                   \
     MDBX_cursor mc_dummy;                                                      \
     MDBX_cursor **tracking_head = &(mn).mc_txn->mt_cursors[mn.mc_dbi];         \
     MDBX_cursor *tracked = &(mn);                                              \
     if ((mn).mc_flags & C_SUB) {                                               \
       mc_dummy.mc_flags = C_INITIALIZED;                                       \
+      mc_dummy.mc_top = 0;                                                     \
       mc_dummy.mc_xcursor = (MDBX_xcursor *)&(mn);                             \
       tracked = &mc_dummy;                                                     \
     }                                                                          \
@@ -8094,7 +8104,7 @@ __hot static int mdbx_page_alloc(MDBX_cursor *mc, const unsigned num,
     if (unlikely(mc->mc_flags & C_RECLAIMING)) {
       /* If mc is updating the GC, then the retired-list cannot play
        * catch-up with itself by growing while trying to save it. */
-      flags &= ~(MDBX_ALLOC_GC | MDBX_COALESCE | MDBX_LIFORECLAIM);
+      flags &= ~MDBX_ALLOC_GC;
     } else if (unlikely(txn->mt_dbs[FREE_DBI].md_entries == 0)) {
       /* avoid (recursive) search inside empty tree and while tree is updating,
        * https://github.com/erthink/libmdbx/issues/31 */
@@ -8301,8 +8311,8 @@ skip_cache:
         /* Stop reclaiming to avoid overflow the page list.
          * This is a rare case while search for a continuously multi-page region
          * in a large database. https://github.com/erthink/libmdbx/issues/123 */
-        flags -= MDBX_ALLOC_GC;
-        if (unlikely(flags == 0)) {
+        flags &= ~MDBX_ALLOC_GC;
+        if (unlikely((flags & MDBX_ALLOC_ALL) == 0)) {
           /* Oh, we can't do anything */
           rc = MDBX_TXN_FULL;
           goto fail;
@@ -10236,7 +10246,6 @@ static __inline void clean_reserved_gc_pnl(MDBX_env *env, MDBX_val pnl) {
     memset(pnl.iov_base, 0, pnl.iov_len);
 }
 
-
 /* Cleanup reclaimed GC records, than save the retired-list as of this
  * transaction to GC (aka freeDB). This recursive changes the reclaimed-list
  * loose-list and retired-list. Keep trying until it stabilizes. */
@@ -10917,7 +10926,6 @@ bailout_notracking:
   mdbx_trace("<<< %u loops, rc = %d", loop, rc);
   return rc;
 }
-
 
 static int mdbx_flush_iov(MDBX_txn *const txn, struct iovec *iov,
                           unsigned iov_items, size_t iov_off,
@@ -15616,6 +15624,7 @@ int mdbx_cursor_put(MDBX_cursor *mc, const MDBX_val *key, MDBX_val *data,
   if (unlikely(rc != MDBX_SUCCESS))
     return rc;
 
+  mdbx_cassert(mc, is_tracked(mc));
   env = mc->mc_txn->mt_env;
 
   /* Check this first so counter will always be zero on any early failures. */
@@ -17258,6 +17267,7 @@ static int mdbx_update_key(MDBX_cursor *mc, const MDBX_val *key) {
   int ptr, i, nkeys, indx;
   DKBUF;
 
+  mdbx_cassert(mc, is_tracked(mc));
   indx = mc->mc_ki[mc->mc_top];
   mp = mc->mc_pg[mc->mc_top];
   node = page_node(mp, indx);
@@ -17415,7 +17425,8 @@ static int mdbx_node_move(MDBX_cursor *csrc, MDBX_cursor *cdst, int fromleft) {
       psrc = csrc->mc_pg[csrc->mc_top];
       pdst = cdst->mc_pg[cdst->mc_top];
 
-      rc = mdbx_update_key(&mn, &key);
+      // rc = mdbx_update_key(&mn, &key);
+      WITH_CURSOR_TRACKING(mn, rc = mdbx_update_key(&mn, &key));
       if (unlikely(rc))
         return rc;
     } else {
@@ -17630,6 +17641,8 @@ static int mdbx_page_merge(MDBX_cursor *csrc, MDBX_cursor *cdst) {
   int rc;
 
   mdbx_cassert(csrc, csrc != cdst);
+  mdbx_cassert(csrc, is_tracked(csrc));
+  mdbx_cassert(cdst, is_tracked(cdst));
   const MDBX_page *const psrc = csrc->mc_pg[csrc->mc_top];
   MDBX_page *pdst = cdst->mc_pg[cdst->mc_top];
   mdbx_debug("merging page %" PRIaPGNO " into %" PRIaPGNO, psrc->mp_pgno,
@@ -17891,6 +17904,7 @@ static void mdbx_cursor_copy(const MDBX_cursor *csrc, MDBX_cursor *cdst) {
  * [in] mc Cursor pointing to the page where rebalancing should begin.
  * Returns 0 on success, non-zero on failure. */
 static int mdbx_rebalance(MDBX_cursor *mc) {
+  mdbx_cassert(mc, is_tracked(mc));
   mdbx_cassert(mc, mc->mc_snum > 0);
   mdbx_cassert(mc, mc->mc_snum < mc->mc_db->md_depth ||
                        IS_LEAF(mc->mc_pg[mc->mc_db->md_depth - 1]));
@@ -17948,8 +17962,7 @@ static int mdbx_rebalance(MDBX_cursor *mc) {
                            mc->mc_db->md_overflow_pages == 0 &&
                            mc->mc_db->md_leaf_pages == 1);
       /* Adjust cursors pointing to mp */
-      const MDBX_dbi dbi = mc->mc_dbi;
-      for (MDBX_cursor *m2 = mc->mc_txn->mt_cursors[dbi]; m2;
+      for (MDBX_cursor *m2 = mc->mc_txn->mt_cursors[mc->mc_dbi]; m2;
            m2 = m2->mc_next) {
         MDBX_cursor *m3 =
             (mc->mc_flags & C_SUB) ? &m2->mc_xcursor->mx_cursor : m2;
@@ -17984,7 +17997,7 @@ static int mdbx_rebalance(MDBX_cursor *mc) {
 
       /* Adjust other cursors pointing to mp */
       MDBX_cursor *m2, *m3;
-      MDBX_dbi dbi = mc->mc_dbi;
+      const MDBX_dbi dbi = mc->mc_dbi;
       for (m2 = mc->mc_txn->mt_cursors[dbi]; m2; m2 = m2->mc_next) {
         m3 = (mc->mc_flags & C_SUB) ? &m2->mc_xcursor->mx_cursor : m2;
         if (m3 == mc || !(m3->mc_flags & C_INITIALIZED))
@@ -18077,7 +18090,7 @@ static int mdbx_rebalance(MDBX_cursor *mc) {
     mn.mc_ki[mn.mc_top - 1] = ki_pre_top + 1;
     mn.mc_ki[mn.mc_top] = 0;
     mc->mc_ki[mc->mc_top] = nkeys;
-    rc = mdbx_page_merge(&mn, mc);
+    WITH_CURSOR_TRACKING(mn, rc = mdbx_page_merge(&mn, mc));
     if (likely(rc != MDBX_RESULT_TRUE)) {
       mc->mc_ki[mc->mc_top] = ki_top;
       mdbx_cassert(mc, rc || page_numkeys(mc->mc_pg[mc->mc_top]) >= minkeys);
@@ -18092,7 +18105,8 @@ static int mdbx_rebalance(MDBX_cursor *mc) {
     mn.mc_ki[mn.mc_top - 1] = ki_pre_top - 1;
     mn.mc_ki[mn.mc_top] = (indx_t)(page_numkeys(left) - 1);
     mc->mc_ki[mc->mc_top] = 0;
-    rc = mdbx_node_move(&mn, mc, true);
+    // rc = mdbx_node_move(&mn, mc, true);
+    WITH_CURSOR_TRACKING(mn, rc = mdbx_node_move(&mn, mc, true));
     if (likely(rc != MDBX_RESULT_TRUE)) {
       mc->mc_ki[mc->mc_top] = ki_top + 1;
       mdbx_cassert(mc, rc || page_numkeys(mc->mc_pg[mc->mc_top]) >= minkeys);
@@ -18105,7 +18119,8 @@ static int mdbx_rebalance(MDBX_cursor *mc) {
     mn.mc_ki[mn.mc_top - 1] = ki_pre_top + 1;
     mn.mc_ki[mn.mc_top] = 0;
     mc->mc_ki[mc->mc_top] = nkeys;
-    rc = mdbx_node_move(&mn, mc, false);
+    // rc = mdbx_node_move(&mn, mc, false);
+    WITH_CURSOR_TRACKING(mn, rc = mdbx_node_move(&mn, mc, false));
     if (likely(rc != MDBX_RESULT_TRUE)) {
       mc->mc_ki[mc->mc_top] = ki_top;
       mdbx_cassert(mc, rc || page_numkeys(mc->mc_pg[mc->mc_top]) >= minkeys);
@@ -18145,7 +18160,7 @@ static int mdbx_rebalance(MDBX_cursor *mc) {
     mn.mc_ki[mn.mc_top - 1] = ki_pre_top + 1;
     mn.mc_ki[mn.mc_top] = 0;
     mc->mc_ki[mc->mc_top] = nkeys;
-    rc = mdbx_page_merge(&mn, mc);
+    WITH_CURSOR_TRACKING(mn, rc = mdbx_page_merge(&mn, mc));
     if (likely(rc != MDBX_RESULT_TRUE)) {
       mc->mc_ki[mc->mc_top] = ki_top;
       mdbx_cassert(mc, rc || page_numkeys(mc->mc_pg[mc->mc_top]) >= minkeys);
@@ -18505,6 +18520,7 @@ static int mdbx_cursor_del0(MDBX_cursor *mc) {
   unsigned nkeys;
   MDBX_dbi dbi = mc->mc_dbi;
 
+  mdbx_cassert(mc, is_tracked(mc));
   mdbx_cassert(mc, IS_LEAF(mc->mc_pg[mc->mc_top]));
   ki = mc->mc_ki[mc->mc_top];
   mp = mc->mc_pg[mc->mc_top];
@@ -25256,9 +25272,9 @@ __dll_export
         0,
         9,
         1,
-        82,
-        {"2020-11-01T00:39:19+03:00", "92dc2e7242cc44c42945812618a5cb06b2412140", "21d2af9e902ba6e3220651996754427ff9ac361d",
-         "v0.9.1-82-g21d2af9-dirty"},
+        83,
+        {"2020-11-03T07:13:48+03:00", "95fc0e2a75ea8c15a6f63eafc710e15d992460c8", "bde8085fb6e947661ef34bc5b4c3eb570faa70f3",
+         "v0.9.1-83-gbde8085"},
         sourcery};
 
 __dll_export

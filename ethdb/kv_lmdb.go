@@ -14,11 +14,19 @@ import (
 	"github.com/c2h5oh/datasize"
 	"github.com/ledgerwatch/lmdb-go/lmdb"
 	"github.com/ledgerwatch/turbo-geth/common/dbutils"
+	"github.com/ledgerwatch/turbo-geth/ethdb/mdbx"
 	"github.com/ledgerwatch/turbo-geth/log"
+	"github.com/ledgerwatch/turbo-geth/metrics"
 	"github.com/prometheus/tsdb/fileutil"
 )
 
 var _ DbCopier = &LmdbKV{}
+
+var (
+	lmdbPutDirectTimer  = metrics.NewRegisteredTimer("lmdb/put/direct", nil)
+	lmdbPutRewriteTimer = metrics.NewRegisteredTimer("lmdb/put/rewrite", nil)
+	lmdbSeekExactTimer  = metrics.NewRegisteredTimer("lmdb/seek/exact", nil)
+)
 
 const (
 	NonExistingDBI dbutils.DBI = 999_999_999
@@ -593,7 +601,7 @@ func (tx *lmdbTx) Commit(ctx context.Context) error {
 
 	if !tx.isSubTx && !tx.db.opts.readOnly && !tx.db.opts.inMem && tx.flags&NoSync == 0 { // call fsync only after main transaction commit
 		fsyncTimer := time.Now()
-		if err := tx.db.env.Sync(true); err != nil {
+		if err := tx.db.env.Sync(false); err != nil {
 			log.Warn("fsync after commit failed", "err", err)
 		}
 		fsyncTook := time.Since(fsyncTimer)
@@ -1172,15 +1180,19 @@ func (c *LmdbCursor) putDupSort(key []byte, value []byte) error {
 	}
 
 	if len(key) != from {
+		defer lmdbPutDirectTimer.UpdateSince(time.Now())
+
 		err := c.putNoOverwrite(key, value)
 		if err != nil {
-			if lmdb.IsKeyExists(err) {
+			if mdbx.IsKeyExists(err) {
 				return c.putCurrent(key, value)
 			}
 			return err
 		}
 		return nil
 	}
+
+	defer lmdbPutRewriteTimer.UpdateSince(time.Now())
 
 	value = append(key[to:], value...)
 	key = key[:to]
@@ -1230,6 +1242,7 @@ func (c *LmdbCursor) SeekExact(key []byte) ([]byte, error) {
 			return nil, err
 		}
 	}
+	defer lmdbSeekExactTimer.UpdateSince(time.Now())
 
 	b := c.bucketCfg
 	if b.AutoDupSortKeysConversion && len(key) == b.DupFromLen {
@@ -1316,13 +1329,13 @@ func (c *LmdbDupSortCursor) initCursor() error {
 		return nil
 	}
 
-	//if c.bucketCfg.AutoDupSortKeysConversion {
-	//	return fmt.Errorf("class LmdbDupSortCursor not compatible with AutoDupSortKeysConversion buckets")
-	//}
+	if c.bucketCfg.AutoDupSortKeysConversion {
+		return fmt.Errorf("class LmdbDupSortCursor not compatible with AutoDupSortKeysConversion buckets")
+	}
 
-	//if c.bucketCfg.Flags&lmdb.DupSort == 0 {
-	//	return fmt.Errorf("class LmdbDupSortCursor can be used only if bucket created with flag lmdb.DupSort")
-	//}
+	if c.bucketCfg.Flags&lmdb.DupSort == 0 {
+		return fmt.Errorf("class LmdbDupSortCursor can be used only if bucket created with flag lmdb.DupSort")
+	}
 
 	return c.LmdbCursor.initCursor()
 }

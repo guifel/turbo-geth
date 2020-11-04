@@ -13,7 +13,6 @@ import (
 	"github.com/ledgerwatch/turbo-geth/cmd/utils"
 	"github.com/ledgerwatch/turbo-geth/common/dbutils"
 	"github.com/ledgerwatch/turbo-geth/ethdb"
-	"github.com/ledgerwatch/turbo-geth/ethdb/mdbx"
 	"github.com/ledgerwatch/turbo-geth/log"
 	"github.com/spf13/cobra"
 )
@@ -254,21 +253,15 @@ func fToMdbx(ctx context.Context, to string) error {
 	logEvery := time.NewTicker(15 * time.Second)
 	defer logEvery.Stop()
 
-	commitEvery := time.NewTicker(5 * time.Second)
+	commitEvery := time.NewTicker(5 * time.Minute)
 	defer commitEvery.Stop()
-
-	type A interface {
-		Internal() *mdbx.Cursor
-	}
 
 	//r := csv.NewReader(bufio.NewReaderSize(file, 1024*1024))
 	//r.Read()
-	_ = dstTx.(ethdb.BucketMigrator).ClearBucket(dbutils.CurrentStateBucket)
+	//_ = dstTx.(ethdb.BucketMigrator).ClearBucket(dbutils.CurrentStateBucket)
 
 	fileScanner := bufio.NewScanner(file)
-	cc := dstTx.CursorDupSort(dbutils.CurrentStateBucket)
-	_, _, _ = cc.First()
-	c := cc.(A).Internal()
+	c := dstTx.CursorDupSort(dbutils.CurrentStateBucket)
 	for fileScanner.Scan() {
 		kv := strings.Split(fileScanner.Text(), ",")
 		k, _ := hex.DecodeString(kv[0])
@@ -281,7 +274,7 @@ func fToMdbx(ctx context.Context, to string) error {
 			return ctx.Err()
 		}
 
-		if err = c.Put(k, v, mdbx.AppendDup); err != nil {
+		if err = c.AppendDup(k, v); err != nil {
 			return err
 		}
 	}

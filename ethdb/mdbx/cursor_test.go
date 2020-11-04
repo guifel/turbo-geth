@@ -330,12 +330,23 @@ func TestDupCmpExcludeSuffix32(t *testing.T) {
 		}
 
 		defer cur.Close()
+		k, v, err := cur.Get(nil, nil, Last)
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(v, []byte{1}) {
+			t.Errorf("unexpected order: %x (not %x)", k, []byte{1})
+		}
+		if !bytes.Equal(v, hash32Bytes) {
+			t.Errorf("unexpected order: %x (not %x)", v, hash32Bytes)
+		}
+
 		_, _, err = cur.Get([]byte{0}, nil, First)
 		if err != nil {
 			return err
 		}
 
-		_, v, err := cur.Get(nil, nil, FirstDup)
+		_, v, err = cur.Get(nil, nil, FirstDup)
 		if err != nil {
 			return err
 		}
@@ -358,7 +369,7 @@ func TestDupCmpExcludeSuffix32(t *testing.T) {
 			t.Errorf("unexpected order: %x (not %x)", v, append([]byte{0, 0}, hash32Bytes...))
 		}
 
-		k, v, err := cur.Get(nil, nil, Next)
+		k, v, err = cur.Get(nil, nil, Next)
 		if err != nil {
 			return err
 		}

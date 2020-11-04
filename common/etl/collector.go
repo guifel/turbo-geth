@@ -161,19 +161,30 @@ func loadFilesIntoBucket(logPrefix string, db ethdb.Database, bucket string, pro
 
 	currentTable := &currentTableReader{tx, bucket}
 	haveSortingGuaranties := isIdentityLoadFunc(loadFunc) // user-defined loadFunc may change ordering
-	var lastKey []byte
+	var lastKey, firstKey, last2 []byte
+	var amount uint64
 	if bucket != "" { // passing empty bucket name is valid case for etl when DB modification is not expected
 		var errLast error
+		c := tx.(ethdb.HasTx).Tx().Cursor(bucket)
+		amount, _ = c.Count()
 		lastKey, _, errLast = tx.Last(bucket)
 		if errLast != nil {
 			return errLast
 		}
+		firstKey, _, errLast = c.First()
+		if errLast != nil {
+			return errLast
+		}
+		last2, _, errLast = c.Last()
+		if errLast != nil {
+			return errLast
+		}
+		c.Close()
 	}
 	var canUseAppend bool
 
 	logEvery := time.NewTicker(30 * time.Second)
 	defer logEvery.Stop()
-
 	i := 0
 	loadNextFunc := func(originalK, k, v []byte) error {
 		if i == 0 {
@@ -208,7 +219,7 @@ func loadFilesIntoBucket(logPrefix string, db ethdb.Database, bucket string, pro
 		}
 		if canUseAppend {
 			if err := tx.(*ethdb.TxDb).Append(bucket, k, v); err != nil {
-				return fmt.Errorf("%s: append: k=%x, %w", logPrefix, k, err)
+				return fmt.Errorf("%s: append: k=%x, lastKey=%x, amount=%d, firstKey=%x, last2=%x, %w", logPrefix, k, lastKey, amount, firstKey, last2, err)
 			}
 			return nil
 		}
