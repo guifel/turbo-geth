@@ -567,7 +567,7 @@ var storageChangeSetDupSort = Migration{
 }
 
 var accChangeSetDupSort2 = Migration{
-	Name: "acc_change_set_dup_fixed_7",
+	Name: "acc_change_set_dup_fixed_8",
 	Up: func(db ethdb.Database, tmpdir string, progress []byte, CommitProgress etl.LoadCommitHandler) (err error) {
 		logEvery := time.NewTicker(30 * time.Second)
 		defer logEvery.Stop()

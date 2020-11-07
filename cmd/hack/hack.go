@@ -2103,12 +2103,13 @@ func receiptSizes(chaindata string) error {
 	}
 	defer tx.Rollback()
 
+	//sizes := make(map[string]int)
+	//bkt := dbutils.PlainAccountChangeSetBucket2
 	bkt := dbutils.PlainAccountChangeSetBucket2
 	fmt.Printf("bucket: %s\n", bkt)
 	c := tx.CursorDupSort(bkt)
 	defer c.Close()
 
-	//sizes := make(map[string]int)
 	total := 0
 	for k, v, err := c.First(); k != nil; k, v, err = c.NextNoDup() {
 		if err != nil {
@@ -2121,7 +2122,7 @@ func receiptSizes(chaindata string) error {
 			if err != nil {
 				return err
 			}
-			total += len(v) + 8
+			total += len(v)
 			//fmt.Printf("\t%x\n", v)
 		}
 		//if len(k) == 20 {
