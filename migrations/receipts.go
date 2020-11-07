@@ -628,7 +628,7 @@ var accChangeSetDupSort2 = Migration{
 		}()
 
 		if err = db.Walk(changeSetBucket, nil, 0, func(kk, changesetBytes []byte) (bool, error) {
-			i += len(kk) + len(changesetBytes)
+			i += len(kk) + len(changesetBytes) + 8 + 8
 			blockNum, _ := dbutils.DecodeTimestamp(kk)
 
 			select {
