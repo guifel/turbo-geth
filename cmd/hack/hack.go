@@ -2114,7 +2114,7 @@ func receiptSizes(chaindata string) error {
 		}
 		fmt.Printf("%x\n", k)
 		fmt.Printf("\t%x\n", v)
-		total += len(k) + len(v)
+		total += len(k) + len(v) + 8
 		for k, v, err := c.NextDup(); k != nil; k, v, err = c.NextDup() {
 			if err != nil {
 				return err
