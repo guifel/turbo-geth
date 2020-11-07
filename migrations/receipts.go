@@ -454,7 +454,7 @@ var storageChangeSetDupSort = Migration{
 		walkerAdapter := changeset.Mapper[dbutils.PlainStorageChangeSetBucket2].WalkerAdapter
 		i := 0
 		cmp := db.(ethdb.HasTx).Tx().Comparator(dbutils.PlainStorageChangeSetBucket2)
-		buf := etl.NewSortableBuffer(etl.BufferOptimalSize * 4 * 4)
+		buf := etl.NewSortableBuffer(etl.BufferOptimalSize * 4 * 2)
 		buf.SetComparator(cmp)
 		newK := make([]byte, 8+20)
 		newV := make([]byte, 32+4096)
@@ -582,7 +582,7 @@ var accChangeSetDupSort2 = Migration{
 		walkerAdapter := changeset.Mapper[dbutils.PlainAccountChangeSetBucket2].WalkerAdapter
 		i := 0
 		cmp := db.(ethdb.HasTx).Tx().Comparator(dbutils.PlainAccountChangeSetBucket3)
-		buf := etl.NewSortableBuffer(etl.BufferOptimalSize * 4 * 4)
+		buf := etl.NewSortableBuffer(etl.BufferOptimalSize * 4 * 2)
 		buf.SetComparator(cmp)
 		//newK := make([]byte, 8)
 

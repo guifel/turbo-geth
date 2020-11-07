@@ -2103,7 +2103,7 @@ func receiptSizes(chaindata string) error {
 	}
 	defer tx.Rollback()
 
-	bkt := dbutils.PlainAccountChangeSetBucket3
+	bkt := dbutils.PlainAccountChangeSetBucket2
 	fmt.Printf("bucket: %s\n", bkt)
 	c := tx.CursorDupSort(bkt)
 	defer c.Close()
