@@ -2102,11 +2102,11 @@ func receiptSizes(chaindata string) error {
 	}
 	defer tx.Rollback()
 
-	fmt.Printf("bucket: %s\n", dbutils.PlainStorageChangeSetBucket)
-	c := tx.CursorDupSort(dbutils.PlainStorageChangeSetBucket2)
+	fmt.Printf("bucket: %s\n", dbutils.PlainStateBucket)
+	c := tx.CursorDupSort(dbutils.PlainStateBucket)
 	defer c.Close()
 
-	sizes := make(map[string]int)
+	//sizes := make(map[string]int)
 	total := 0
 	for k, v, err := c.First(); k != nil; k, v, err = c.NextNoDup() {
 		if err != nil {
@@ -2119,7 +2119,7 @@ func receiptSizes(chaindata string) error {
 			if err != nil {
 				return err
 			}
-			total += len(v)
+			total += len(v) + 8
 			fmt.Printf("\t%x\n", v)
 		}
 		//if len(k) == 20 {
@@ -2133,19 +2133,19 @@ func receiptSizes(chaindata string) error {
 	}
 	fmt.Printf("values sz: %s\n", common.StorageSize(total))
 
-	var lens = make([]string, len(sizes))
-	i := 0
-	for l := range sizes {
-		lens[i] = l
-		i++
-	}
-	sort.Strings(lens)
-	for _, l := range lens {
-		if sizes[l] < 100000 {
-			continue
-		}
-		fmt.Printf("%6d - %d\n", l, sizes[l])
-	}
+	//var lens = make([]string, len(sizes))
+	//i := 0
+	//for l := range sizes {
+	//	lens[i] = l
+	//	i++
+	//}
+	//sort.Strings(lens)
+	//for _, l := range lens {
+	//	if sizes[l] < 100000 {
+	//		continue
+	//	}
+	//	fmt.Printf("%6d - %d\n", l, sizes[l])
+	//}
 	return nil
 }
 
