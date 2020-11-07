@@ -2104,36 +2104,35 @@ func receiptSizes(chaindata string) error {
 	defer tx.Rollback()
 
 	//sizes := make(map[string]int)
-	//bkt := dbutils.PlainAccountChangeSetBucket2
-	bkt := dbutils.PlainAccountChangeSetBucket2
+	bkt := dbutils.PlainAccountChangeSetBucket
+	//bkt := dbutils.PlainAccountChangeSetBucket3
 	fmt.Printf("bucket: %s\n", bkt)
 	c := tx.CursorDupSort(bkt)
 	defer c.Close()
 
 	total := 0
-	for k, v, err := c.First(); k != nil; k, v, err = c.NextNoDup() {
-		if err != nil {
-			return err
-		}
-		//fmt.Printf("%x\n", k)
-		//fmt.Printf("\t%x\n", v)
-		total += len(k) + len(v) + 8
-		for k, v, err := c.NextDup(); k != nil; k, v, err = c.NextDup() {
-			if err != nil {
-				return err
-			}
-			total += len(v)
-			//fmt.Printf("\t%x\n", v)
-		}
-		//if len(k) == 20 {
-		//	continue
-		//}
-		//sizes[string(v[32:])]++
-		//j++
-		//if j%10_000 == 0 {
-		//	fmt.Printf("%dK\n", len(sizes)/1000)
-		//}
+	walkerAdapter := changeset.Mapper[dbutils.PlainAccountChangeSetBucket2].WalkerAdapter
+	for k, v, err := c.First(); k != nil; k, v, err = c.Next() {
+		check(err)
+		total += len(k) + 8
+		err = walkerAdapter(v).Walk(func(k, v []byte) error {
+			total += len(k)
+			return nil
+		})
+		check(err)
 	}
+
+	//for k, v, err := c.First(); k != nil; k, v, err = c.NextNoDup() {
+	//	check(err)
+	//	//fmt.Printf("%x\n", k)
+	//	//fmt.Printf("\t%x\n", v)
+	//	total += len(k) + len(v) + 8
+	//	for k, v, err := c.NextDup(); k != nil; k, v, err = c.NextDup() {
+	//		check(err)
+	//		total += len(v)
+	//		//fmt.Printf("\t%x\n", v)
+	//	}
+	//}
 	fmt.Printf("values sz: %s\n", common.StorageSize(total))
 
 	//var lens = make([]string, len(sizes))
