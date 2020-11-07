@@ -2112,12 +2112,14 @@ func receiptSizes(chaindata string) error {
 	defer c.Close()
 
 	total := 0
+	values := 0
 	walkerAdapter := changeset.Mapper[dbutils.PlainAccountChangeSetBucket2].WalkerAdapter
 	for k, v, err := c.First(); k != nil; k, v, err = c.Next() {
 		check(err)
 		total += len(k) + 8
 		err = walkerAdapter(v).Walk(func(k, v []byte) error {
 			total += len(k)
+			values += len(v)
 			return nil
 		})
 		check(err)
@@ -2130,12 +2132,14 @@ func receiptSizes(chaindata string) error {
 	defer c.Close()
 
 	total = 0
+	values = 0
 	walkerAdapter = changeset.Mapper[dbutils.PlainStorageChangeSetBucket2].WalkerAdapter
 	for k, v, err := c.First(); k != nil; k, v, err = c.Next() {
 		check(err)
 		total += len(k) + 8
 		err = walkerAdapter(v).Walk(func(k, v []byte) error {
 			total += len(k)
+			values += len(v)
 			return nil
 		})
 		check(err)
