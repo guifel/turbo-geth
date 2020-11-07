@@ -2113,15 +2113,15 @@ func receiptSizes(chaindata string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%x\n", k)
-		fmt.Printf("\t%x\n", v)
+		//fmt.Printf("%x\n", k)
+		//fmt.Printf("\t%x\n", v)
 		total += len(k) + len(v) + 8
 		for k, v, err := c.NextDup(); k != nil; k, v, err = c.NextDup() {
 			if err != nil {
 				return err
 			}
 			total += len(v) + 8
-			fmt.Printf("\t%x\n", v)
+			//fmt.Printf("\t%x\n", v)
 		}
 		//if len(k) == 20 {
 		//	continue
