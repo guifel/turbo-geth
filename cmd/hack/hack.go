@@ -16,7 +16,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -2105,8 +2104,9 @@ func receiptSizes(chaindata string) error {
 	defer tx.Rollback()
 
 	//sizes := make(map[string]int)
-	bkt := dbutils.PlainAccountChangeSetBucket
 	//bkt := dbutils.PlainAccountChangeSetBucket3
+
+	bkt := dbutils.PlainAccountChangeSetBucket
 	fmt.Printf("bucket: %s\n", bkt)
 	c := tx.CursorDupSort(bkt)
 	defer c.Close()
@@ -2122,6 +2122,25 @@ func receiptSizes(chaindata string) error {
 		})
 		check(err)
 	}
+	fmt.Printf("values sz: %s\n", common.StorageSize(total))
+
+	bkt = dbutils.PlainStorageChangeSetBucket
+	fmt.Printf("bucket: %s\n", bkt)
+	c = tx.CursorDupSort(bkt)
+	defer c.Close()
+
+	total = 0
+	walkerAdapter = changeset.Mapper[dbutils.PlainStorageChangeSetBucket2].WalkerAdapter
+	for k, v, err := c.First(); k != nil; k, v, err = c.Next() {
+		check(err)
+		total += len(k) + 8
+		err = walkerAdapter(v).Walk(func(k, v []byte) error {
+			total += len(k)
+			return nil
+		})
+		check(err)
+	}
+	fmt.Printf("values sz: %s\n", common.StorageSize(total))
 
 	//for k, v, err := c.First(); k != nil; k, v, err = c.NextNoDup() {
 	//	check(err)
@@ -2134,7 +2153,6 @@ func receiptSizes(chaindata string) error {
 	//		//fmt.Printf("\t%x\n", v)
 	//	}
 	//}
-	fmt.Printf("values sz: %s\n", common.StorageSize(total))
 
 	//var lens = make([]string, len(sizes))
 	//i := 0
