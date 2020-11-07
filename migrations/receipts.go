@@ -666,7 +666,7 @@ var accChangeSetDupSort2 = Migration{
 			return fmt.Errorf("committing the removal of receipt table: %w", err)
 		}
 		// Now transaction would have been re-opened, and we should be re-using the space
-		if err = collectorR.Load(logPrefix, db, dbutils.PlainAccountChangeSetBucket2, etl.IdentityLoadFunc, etl.TransformArgs{
+		if err = collectorR.Load(logPrefix, db, dbutils.PlainAccountChangeSetBucket3, etl.IdentityLoadFunc, etl.TransformArgs{
 			OnLoadCommit: CommitProgress,
 			LogDetailsLoad: func(k, v []byte) (additionalLogArguments []interface{}) {
 				err = db.(ethdb.DbWithPendingMutations).CommitAndBegin(context.Background())
