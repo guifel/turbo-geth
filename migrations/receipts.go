@@ -393,9 +393,9 @@ var accChangeSetDupSort = Migration{
 				//copy(newV[32:], v)
 				//return c.Put(common.CopyBytes(newK), common.CopyBytes(newV))
 
-				newV := newV[:8+32+len(v)]
+				newV = newV[:8+32+len(v)]
 				copy(newV, k[20:20+8+32])
-				copy(newV[20+8+32:], v)
+				copy(newV[8+32:], v)
 				return collectorR.Collect(newK, newV)
 			}); err != nil {
 				return false, err
