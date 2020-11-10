@@ -772,7 +772,7 @@ func (c *LmdbCursor) prev() ([]byte, []byte, error)           { return c.c.Get(n
 func (c *LmdbCursor) prevDup() ([]byte, []byte, error)        { return c.c.Get(nil, nil, lmdb.PrevDup) }
 func (c *LmdbCursor) prevNoDup() ([]byte, []byte, error)      { return c.c.Get(nil, nil, lmdb.PrevNoDup) }
 func (c *LmdbCursor) last() ([]byte, []byte, error)           { return c.c.Get(nil, nil, lmdb.Last) }
-func (c *LmdbCursor) delCurrent() error                       { return c.c.Del(0) }
+func (c *LmdbCursor) delCurrent() error                       { return c.c.Del(lmdb.Current) }
 func (c *LmdbCursor) delNoDupData() error                     { return c.c.Del(lmdb.NoDupData) }
 func (c *LmdbCursor) put(k, v []byte) error                   { return c.c.Put(k, v, 0) }
 func (c *LmdbCursor) putCurrent(k, v []byte) error            { return c.c.Put(k, v, lmdb.Current) }

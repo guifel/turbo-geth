@@ -167,7 +167,7 @@ func Truncate(tx ethdb.Tx, from uint64) error {
 	{
 		c := tx.CursorDupSort(dbutils.PlainStorageChangeSetBucket)
 		defer c.Close()
-		for k, _, err := c.Seek(keyStart); k != nil; k, _, err = c.NextDup() {
+		for k, _, err := c.Seek(keyStart); k != nil; k, _, err = c.NextNoDup() {
 			if err != nil {
 				return err
 			}
