@@ -1,8 +1,10 @@
 package migrations
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/ledgerwatch/turbo-geth/common"
@@ -14,7 +16,7 @@ import (
 )
 
 var accChangeSetDupSort = Migration{
-	Name: "acc_change_set_dup_sort_15",
+	Name: "acc_change_set_dup_sort_16",
 	Up: func(db ethdb.Database, tmpdir string, progress []byte, CommitProgress etl.LoadCommitHandler) (err error) {
 		logEvery := time.NewTicker(30 * time.Second)
 		defer logEvery.Stop()
@@ -26,7 +28,6 @@ var accChangeSetDupSort = Migration{
 		cmp := db.(ethdb.HasTx).Tx().Comparator(dbutils.PlainStorageChangeSetBucket)
 		buf := etl.NewSortableBuffer(etl.BufferOptimalSize * 4)
 		buf.SetComparator(cmp)
-		newK := make([]byte, 8)
 
 		collectorR, err1 := etl.NewCollectorFromFiles(tmpdir)
 		if err1 != nil {
@@ -78,11 +79,13 @@ var accChangeSetDupSort = Migration{
 				log.Info(fmt.Sprintf("[%s] Progress2", logPrefix), "blockNum", blockNum)
 			}
 
-			binary.BigEndian.PutUint64(newK, blockNum)
 			if err = accountChangeSetPlainBytesOld(changesetBytes).Walk(func(k, v []byte) error {
+				newK := make([]byte, 8)
+				binary.BigEndian.PutUint64(newK, blockNum)
+
 				newV := make([]byte, len(k)+len(v))
 				copy(newV, k)
-				copy(newV[len(k):], k)
+				copy(newV[len(k):], v)
 				return collectorR.Collect(newK, newV)
 			}); err != nil {
 				return false, err
@@ -118,7 +121,7 @@ var accChangeSetDupSort = Migration{
 }
 
 var storageChangeSetDupSort = Migration{
-	Name: "storage_change_set_dup_sort_19",
+	Name: "storage_change_set_dup_sort_20",
 	Up: func(db ethdb.Database, tmpdir string, progress []byte, CommitProgress etl.LoadCommitHandler) (err error) {
 		logEvery := time.NewTicker(30 * time.Second)
 		defer logEvery.Stop()
@@ -129,8 +132,6 @@ var storageChangeSetDupSort = Migration{
 		cmp := db.(ethdb.HasTx).Tx().Comparator(dbutils.PlainStorageChangeSetBucket)
 		buf := etl.NewSortableBuffer(etl.BufferOptimalSize * 4)
 		buf.SetComparator(cmp)
-		newK := make([]byte, 8+20+8)
-		newV := make([]byte, 32+4096)
 
 		collectorR, err1 := etl.NewCollectorFromFiles(tmpdir)
 		if err1 != nil {
@@ -182,11 +183,12 @@ var storageChangeSetDupSort = Migration{
 				log.Info(fmt.Sprintf("[%s] Progress", logPrefix), "blockNum", blockNum)
 			}
 
-			binary.BigEndian.PutUint64(newK, blockNum)
 			if err = storageChangeSetPlainBytesOld(changesetBytes).Walk(func(k, v []byte) error {
+				newK := make([]byte, 8+20+8)
+				binary.BigEndian.PutUint64(newK, blockNum)
 				copy(newK[8:], k[:20+8])
 
-				newV = newV[:32+len(v)]
+				newV := make([]byte, 32+len(v))
 				copy(newV, k[20+8:])
 				copy(newV[32:], v)
 				return collectorR.Collect(newK, newV)
@@ -388,6 +390,208 @@ func findValue(b []byte, i int) ([]byte, error) {
 		return nil, changeset.ErrFindValue
 	}
 	return b[valsPointer+lenOfValStart : valsPointer+lenOfValEnd], nil
+}
+
+type contractKeys struct {
+	AddrBytes   []byte // either a hash of address or raw address
+	Incarnation uint64
+	Keys        [][]byte
+	Vals        [][]byte
+}
+
+func encodeStorage(s *changeset.ChangeSet, keyPrefixLen uint32) ([]byte, error) {
+	sort.Sort(s)
+	var err error
+	buf := new(bytes.Buffer)
+	uint16Arr := make([]byte, 2)
+	uint32Arr := make([]byte, 4)
+	numOfElements := s.Len()
+
+	keys := make([]contractKeys, 0, numOfElements)
+	valLengthes := make([]byte, 0, numOfElements)
+	var (
+		currentContract contractKeys
+		numOfUint8      uint32
+		numOfUint16     uint32
+		numOfUint32     uint32
+		lengthOfValues  uint32
+	)
+	var nonDefaultIncarnationCounter uint32
+	//first 4 bytes - len. body -  []{idOfAddrHash(4) +  incarnation(8)}
+	notDefaultIncarnationsBytes := make([]byte, 4)
+	b := make([]byte, 12)
+
+	currentKey := -1
+	for i, change := range s.Changes {
+		addrBytes := change.Key[0:keyPrefixLen] // hash or raw address
+		incarnation := binary.BigEndian.Uint64(change.Key[keyPrefixLen:])
+		keyBytes := change.Key[keyPrefixLen+common.IncarnationLength : keyPrefixLen+common.HashLength+common.IncarnationLength] // hash or raw key
+		//found new contract address
+		if i == 0 || !bytes.Equal(currentContract.AddrBytes, addrBytes) || currentContract.Incarnation != incarnation {
+			currentKey++
+			currentContract.AddrBytes = addrBytes
+			currentContract.Incarnation = incarnation
+			//add to incarnations part only if it's not default
+			if incarnation != changeset.DefaultIncarnation {
+				binary.BigEndian.PutUint32(b[0:], uint32(currentKey))
+				binary.BigEndian.PutUint64(b[4:], incarnation)
+				notDefaultIncarnationsBytes = append(notDefaultIncarnationsBytes, b...)
+				nonDefaultIncarnationCounter++
+			}
+			currentContract.Keys = [][]byte{keyBytes}
+			currentContract.Vals = [][]byte{change.Value}
+			keys = append(keys, currentContract)
+		} else {
+			//add key and value
+			currentContract.Keys = append(currentContract.Keys, keyBytes)
+			currentContract.Vals = append(currentContract.Vals, change.Value)
+		}
+
+		//calculate lengthes of values
+		lengthOfValues += uint32(len(change.Value))
+		switch {
+		case lengthOfValues <= 255:
+			valLengthes = append(valLengthes, uint8(lengthOfValues))
+			numOfUint8++
+
+		case lengthOfValues <= 65535:
+			binary.BigEndian.PutUint16(uint16Arr, uint16(lengthOfValues))
+			valLengthes = append(valLengthes, uint16Arr...)
+			numOfUint16++
+
+		default:
+			binary.BigEndian.PutUint32(uint32Arr, lengthOfValues)
+			valLengthes = append(valLengthes, uint32Arr...)
+			numOfUint32++
+		}
+
+		//save to array
+		keys[currentKey] = currentContract
+	}
+
+	// save numOfUniqueContracts
+	binary.BigEndian.PutUint32(uint32Arr, uint32(len(keys)))
+	if _, err = buf.Write(uint32Arr); err != nil {
+		return nil, err
+	}
+
+	if len(keys) == 0 {
+		return nil, fmt.Errorf("incorrect data")
+	}
+
+	// save addrHashes + endOfKeys
+	var endNumOfKeys int
+	for i := 0; i < len(keys); i++ {
+		if _, err = buf.Write(keys[i].AddrBytes); err != nil {
+			return nil, err
+		}
+		endNumOfKeys += len(keys[i].Keys)
+
+		//end of keys
+		binary.BigEndian.PutUint32(uint32Arr, uint32(endNumOfKeys))
+		if _, err = buf.Write(uint32Arr); err != nil {
+			return nil, err
+		}
+	}
+
+	if endNumOfKeys != numOfElements {
+		return nil, fmt.Errorf("incorrect number of elements must:%v current:%v", numOfElements, endNumOfKeys)
+	}
+
+	// save not default incarnations
+	binary.BigEndian.PutUint32(notDefaultIncarnationsBytes, nonDefaultIncarnationCounter)
+	if _, err = buf.Write(notDefaultIncarnationsBytes); err != nil {
+		return nil, err
+	}
+
+	// save keys
+	for _, group := range keys {
+		for _, v := range group.Keys {
+			if _, err = buf.Write(v); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// save lengths of values
+	binary.BigEndian.PutUint32(uint32Arr, numOfUint8)
+	if _, err = buf.Write(uint32Arr); err != nil {
+		return nil, err
+	}
+
+	binary.BigEndian.PutUint32(uint32Arr, numOfUint16)
+	if _, err = buf.Write(uint32Arr); err != nil {
+		return nil, err
+	}
+
+	binary.BigEndian.PutUint32(uint32Arr, numOfUint32)
+	if _, err = buf.Write(uint32Arr); err != nil {
+		return nil, err
+	}
+
+	if _, err = buf.Write(valLengthes); err != nil {
+		return nil, err
+	}
+
+	// save values
+	for _, v := range keys {
+		for _, val := range v.Vals {
+			if _, err = buf.Write(val); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return buf.Bytes(), nil
+}
+
+/*
+AccountChangeSet is serialized in the following manner in order to facilitate binary search:
+1. The number of keys N (uint32, 4 bytes).
+2. Contiguous array of keys (N*M bytes).
+3. Contiguous array of accumulating value indexes:
+len(val0), len(val0)+len(val1), ..., len(val0)+len(val1)+...+len(val_{N-1})
+(4*N bytes since the lengths are treated as uint32).
+4. Contiguous array of values.
+
+uint32 integers are serialized as big-endian.
+*/
+func encodeAccounts(s *changeset.ChangeSet) ([]byte, error) {
+	sort.Sort(s)
+	buf := new(bytes.Buffer)
+	intArr := make([]byte, 4)
+	n := s.Len()
+	binary.BigEndian.PutUint32(intArr, uint32(n))
+	_, err := buf.Write(intArr)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < n; i++ {
+		_, err = buf.Write(s.Changes[i].Key)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var l int
+	for i := 0; i < n; i++ {
+		l += len(s.Changes[i].Value)
+		binary.BigEndian.PutUint32(intArr, uint32(l))
+		_, err = buf.Write(intArr)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for i := 0; i < n; i++ {
+		_, err = buf.Write(s.Changes[i].Value)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.Bytes(), nil
 }
 
 // ---- Copy-Paste of code to decode ChangeSets: End -----
