@@ -397,9 +397,6 @@ func findInHistory(hK, hV []byte, timestamp uint64, csWalker changeset.Walker2) 
 					timestamp,
 					err)
 			}
-			if data == nil {
-				return nil, false, fmt.Errorf("could not find ChangeSet record for index entry %d (query timestamp %d) key %s", changeSetBlock, timestamp, common.Bytes2Hex(hK))
-			}
 			return data, true, nil
 		}
 		return nil, true, nil
