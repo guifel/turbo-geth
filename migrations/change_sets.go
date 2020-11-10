@@ -392,6 +392,7 @@ func findValue(b []byte, i int) ([]byte, error) {
 	return b[valsPointer+lenOfValStart : valsPointer+lenOfValEnd], nil
 }
 
+//nolint:unused,deadcode
 type contractKeys struct {
 	AddrBytes   []byte // either a hash of address or raw address
 	Incarnation uint64
