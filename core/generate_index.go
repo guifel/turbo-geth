@@ -76,7 +76,7 @@ func (ig *IndexGenerator) Truncate(timestampTo uint64, changeSetBucket string) e
 	}
 
 	keys := make(map[string]struct{})
-	if err := changeset.Walk(ig.db, changeSetBucket, dbutils.EncodeTimestamp(timestampTo), 0, func(blockN uint64, k, v []byte) (bool, error) {
+	if err := changeset.Walk(ig.db, changeSetBucket, dbutils.EncodeBlockNumber(timestampTo), 0, func(blockN uint64, k, v []byte) (bool, error) {
 		if err := common.Stopped(ig.quitCh); err != nil {
 			return false, err
 		}
