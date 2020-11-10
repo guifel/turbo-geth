@@ -449,7 +449,7 @@ func encodeStorage(s *changeset.ChangeSet, keyPrefixLen uint32) ([]byte, error) 
 			currentContract.Vals = append(currentContract.Vals, change.Value)
 		}
 
-		//calculate lengthes of values
+		//calculate lengths of values
 		lengthOfValues += uint32(len(change.Value))
 		switch {
 		case lengthOfValues <= 255:
