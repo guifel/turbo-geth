@@ -14,7 +14,7 @@ import (
 )
 
 var accChangeSetDupSort = Migration{
-	Name: "acc_change_set_dup_sort_14",
+	Name: "acc_change_set_dup_sort_15",
 	Up: func(db ethdb.Database, tmpdir string, progress []byte, CommitProgress etl.LoadCommitHandler) (err error) {
 		logEvery := time.NewTicker(30 * time.Second)
 		defer logEvery.Stop()
@@ -26,7 +26,7 @@ var accChangeSetDupSort = Migration{
 		cmp := db.(ethdb.HasTx).Tx().Comparator(dbutils.PlainStorageChangeSetBucket)
 		buf := etl.NewSortableBuffer(etl.BufferOptimalSize * 4)
 		buf.SetComparator(cmp)
-		newK := make([]byte, 8+20)
+		newK := make([]byte, 8)
 
 		collectorR, err1 := etl.NewCollectorFromFiles(tmpdir)
 		if err1 != nil {
@@ -118,7 +118,7 @@ var accChangeSetDupSort = Migration{
 }
 
 var storageChangeSetDupSort = Migration{
-	Name: "storage_change_set_dup_sort_18",
+	Name: "storage_change_set_dup_sort_19",
 	Up: func(db ethdb.Database, tmpdir string, progress []byte, CommitProgress etl.LoadCommitHandler) (err error) {
 		logEvery := time.NewTicker(30 * time.Second)
 		defer logEvery.Stop()
@@ -129,8 +129,8 @@ var storageChangeSetDupSort = Migration{
 		cmp := db.(ethdb.HasTx).Tx().Comparator(dbutils.PlainStorageChangeSetBucket)
 		buf := etl.NewSortableBuffer(etl.BufferOptimalSize * 4)
 		buf.SetComparator(cmp)
-		newK := make([]byte, 8+20)
-		newV := make([]byte, 8+32+4096)
+		newK := make([]byte, 8+20+8)
+		newV := make([]byte, 32+4096)
 
 		collectorR, err1 := etl.NewCollectorFromFiles(tmpdir)
 		if err1 != nil {
