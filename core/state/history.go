@@ -82,9 +82,9 @@ func FindByHistory(tx ethdb.Tx, storage bool, key []byte, timestamp uint64) ([]b
 		defer c.Close()
 		var err error
 		if storage {
-			data, err = changeset.Mapper[csBucket].WalkerAdapter2(c).(changeset.StorageChangeSetPlain).FindWithIncarnation(changeSetBlock, key)
+			data, err = changeset.Mapper[csBucket].WalkerAdapter(c).(changeset.StorageChangeSetPlain).FindWithIncarnation(changeSetBlock, key)
 		} else {
-			data, err = changeset.Mapper[csBucket].WalkerAdapter2(c).Find(changeSetBlock, key)
+			data, err = changeset.Mapper[csBucket].WalkerAdapter(c).Find(changeSetBlock, key)
 		}
 		if err != nil {
 			if !errors.Is(err, changeset.ErrNotFound) {
@@ -409,16 +409,16 @@ func returnCorrectWalker2(bucket, hBucket string, tx ethdb.Tx) (changeset.Walker
 	switch {
 	case bucket == dbutils.CurrentStateBucket && hBucket == dbutils.StorageHistoryBucket:
 		c := tx.CursorDupSort(dbutils.StorageChangeSetBucket)
-		return changeset.Mapper[dbutils.StorageChangeSetBucket].WalkerAdapter2(c), c
+		return changeset.Mapper[dbutils.StorageChangeSetBucket].WalkerAdapter(c), c
 	case bucket == dbutils.CurrentStateBucket && hBucket == dbutils.AccountsHistoryBucket:
 		c := tx.CursorDupSort(dbutils.AccountChangeSetBucket)
-		return changeset.Mapper[dbutils.AccountChangeSetBucket].WalkerAdapter2(c), c
+		return changeset.Mapper[dbutils.AccountChangeSetBucket].WalkerAdapter(c), c
 	case bucket == dbutils.PlainStateBucket && hBucket == dbutils.StorageHistoryBucket:
 		c := tx.CursorDupSort(dbutils.PlainStorageChangeSetBucket)
-		return changeset.Mapper[dbutils.PlainStorageChangeSetBucket].WalkerAdapter2(c), c
+		return changeset.Mapper[dbutils.PlainStorageChangeSetBucket].WalkerAdapter(c), c
 	case bucket == dbutils.PlainStateBucket && hBucket == dbutils.AccountsHistoryBucket:
 		c := tx.CursorDupSort(dbutils.PlainAccountChangeSetBucket)
-		return changeset.Mapper[dbutils.PlainAccountChangeSetBucket].WalkerAdapter2(c), c
+		return changeset.Mapper[dbutils.PlainAccountChangeSetBucket].WalkerAdapter(c), c
 	default:
 		panic("not implemented")
 	}

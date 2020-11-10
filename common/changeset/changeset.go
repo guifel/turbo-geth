@@ -181,21 +181,17 @@ func Truncate(tx ethdb.Tx, from uint64) error {
 }
 
 var Mapper = map[string]struct {
-	IndexBucket    string
-	WalkerAdapter  func(v []byte) Walker
-	WalkerAdapter2 func(cursor ethdb.CursorDupSort) Walker2
-	KeySize        int
-	Template       string
-	New            func() *ChangeSet
-	Encode         Encoder
-	Decode         Decoder
+	IndexBucket   string
+	WalkerAdapter func(cursor ethdb.CursorDupSort) Walker2
+	KeySize       int
+	Template      string
+	New           func() *ChangeSet
+	Encode        Encoder
+	Decode        Decoder
 }{
 	dbutils.AccountChangeSetBucket: {
 		IndexBucket: dbutils.AccountsHistoryBucket,
-		WalkerAdapter: func(v []byte) Walker {
-			return AccountChangeSetBytes(v)
-		},
-		WalkerAdapter2: func(c ethdb.CursorDupSort) Walker2 {
+		WalkerAdapter: func(c ethdb.CursorDupSort) Walker2 {
 			return AccountChangeSet{c: c}
 		},
 		KeySize:  common.HashLength,
@@ -206,10 +202,7 @@ var Mapper = map[string]struct {
 	},
 	dbutils.StorageChangeSetBucket: {
 		IndexBucket: dbutils.StorageHistoryBucket,
-		WalkerAdapter: func(v []byte) Walker {
-			return StorageChangeSetBytes(v)
-		},
-		WalkerAdapter2: func(c ethdb.CursorDupSort) Walker2 {
+		WalkerAdapter: func(c ethdb.CursorDupSort) Walker2 {
 			return StorageChangeSet{c: c}
 		},
 		KeySize:  common.HashLength,
@@ -220,10 +213,7 @@ var Mapper = map[string]struct {
 	},
 	dbutils.PlainAccountChangeSetBucket: {
 		IndexBucket: dbutils.AccountsHistoryBucket,
-		WalkerAdapter: func(v []byte) Walker {
-			return AccountChangeSetPlainBytes(v)
-		},
-		WalkerAdapter2: func(c ethdb.CursorDupSort) Walker2 {
+		WalkerAdapter: func(c ethdb.CursorDupSort) Walker2 {
 			return AccountChangeSetPlain{c: c}
 		},
 		KeySize:  common.AddressLength,
@@ -234,10 +224,7 @@ var Mapper = map[string]struct {
 	},
 	dbutils.PlainStorageChangeSetBucket: {
 		IndexBucket: dbutils.StorageHistoryBucket,
-		WalkerAdapter: func(v []byte) Walker {
-			return StorageChangeSetPlainBytes(v)
-		},
-		WalkerAdapter2: func(c ethdb.CursorDupSort) Walker2 {
+		WalkerAdapter: func(c ethdb.CursorDupSort) Walker2 {
 			return StorageChangeSetPlain{c: c}
 		},
 		KeySize:  common.AddressLength,

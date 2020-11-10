@@ -249,7 +249,7 @@ func TestEncodingStorageNewWithoutNotDefaultIncarnationFindHashed(t *testing.T) 
 	}
 	defer tx.Rollback()
 
-	cs := m.WalkerAdapter2(tx.CursorDupSort(bkt)).(StorageChangeSet)
+	cs := m.WalkerAdapter(tx.CursorDupSort(bkt)).(StorageChangeSet)
 
 	clear := func() {
 		c := tx.Cursor(bkt)
@@ -279,7 +279,7 @@ func TestEncodingStorageNewWithoutNotDefaultIncarnationFindPlain(t *testing.T) {
 	}
 	defer tx.Rollback()
 
-	cs := m.WalkerAdapter2(tx.CursorDupSort(bkt)).(StorageChangeSetPlain)
+	cs := m.WalkerAdapter(tx.CursorDupSort(bkt)).(StorageChangeSetPlain)
 
 	clear := func() {
 		c := tx.Cursor(bkt)
@@ -309,7 +309,7 @@ func TestEncodingStorageNewWithoutNotDefaultIncarnationFindWithoutIncarnationHas
 	}
 	defer tx.Rollback()
 
-	cs := m.WalkerAdapter2(tx.CursorDupSort(bkt)).(StorageChangeSet)
+	cs := m.WalkerAdapter(tx.CursorDupSort(bkt)).(StorageChangeSet)
 
 	clear := func() {
 		c := tx.Cursor(bkt)
@@ -339,7 +339,7 @@ func TestEncodingStorageNewWithoutNotDefaultIncarnationFindWithoutIncarnationPla
 	}
 	defer tx.Rollback()
 
-	cs := m.WalkerAdapter2(tx.CursorDupSort(bkt)).(StorageChangeSetPlain)
+	cs := m.WalkerAdapter(tx.CursorDupSort(bkt)).(StorageChangeSetPlain)
 
 	clear := func() {
 		c := tx.Cursor(bkt)
@@ -520,7 +520,7 @@ func TestMultipleIncarnationsOfTheSameContract(t *testing.T) {
 	}
 	defer tx.Rollback()
 
-	cs := m.WalkerAdapter2(tx.CursorDupSort(bkt)).(StorageChangeSetPlain)
+	cs := m.WalkerAdapter(tx.CursorDupSort(bkt)).(StorageChangeSetPlain)
 
 	contractA := common.HexToAddress("0x6f0e0cdac6c716a00bd8db4d0eee4f2bfccf8e6a")
 	contractB := common.HexToAddress("0xc5acb79c258108f288288bc26f7820d06f45f08c")

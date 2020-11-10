@@ -273,7 +273,6 @@ var accChangeSetDupSort = Migration{
 		const loadStep = "load"
 
 		changeSetBucket := dbutils.PlainAccountChangeSetBucket
-		walkerAdapter := changeset.Mapper[dbutils.PlainAccountChangeSetBucket].WalkerAdapter
 		cmp := db.(ethdb.HasTx).Tx().Comparator(dbutils.PlainStorageChangeSetBucket)
 		buf := etl.NewSortableBuffer(etl.BufferOptimalSize * 4)
 		buf.SetComparator(cmp)
@@ -330,7 +329,7 @@ var accChangeSetDupSort = Migration{
 			}
 
 			binary.BigEndian.PutUint64(newK, blockNum)
-			if err = walkerAdapter(changesetBytes).Walk(func(k, v []byte) error {
+			if err = changeset.AccountChangeSetPlainBytes(changesetBytes).Walk(func(k, v []byte) error {
 				newV := make([]byte, len(k)+len(v))
 				copy(newV, k)
 				copy(newV[len(k):], k)
@@ -377,7 +376,6 @@ var storageChangeSetDupSort = Migration{
 
 		const loadStep = "load"
 		changeSetBucket := dbutils.PlainStorageChangeSetBucket
-		walkerAdapter := changeset.Mapper[dbutils.PlainStorageChangeSetBucket].WalkerAdapter
 		cmp := db.(ethdb.HasTx).Tx().Comparator(dbutils.PlainStorageChangeSetBucket)
 		buf := etl.NewSortableBuffer(etl.BufferOptimalSize * 4)
 		buf.SetComparator(cmp)
@@ -425,8 +423,6 @@ var storageChangeSetDupSort = Migration{
 			collectorR.Close(logPrefix)
 		}()
 
-		walkerAdapter = changeset.Mapper[dbutils.PlainStorageChangeSetBucket].WalkerAdapter
-
 		if err = db.Walk(changeSetBucket, nil, 0, func(kk, changesetBytes []byte) (bool, error) {
 			blockNum, _ := dbutils.DecodeTimestamp(kk)
 
@@ -437,7 +433,7 @@ var storageChangeSetDupSort = Migration{
 			}
 
 			binary.BigEndian.PutUint64(newK, blockNum)
-			if err = walkerAdapter(changesetBytes).Walk(func(k, v []byte) error {
+			if err = changeset.StorageChangeSetPlainBytes(changesetBytes).Walk(func(k, v []byte) error {
 				copy(newK[8:], k[:20+8])
 
 				newV = newV[:32+len(v)]
