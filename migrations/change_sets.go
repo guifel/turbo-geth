@@ -224,6 +224,8 @@ var storageChangeSetDupSort = Migration{
 	},
 }
 
+// ---- Copy-Paste of code to decode ChangeSets: Begin -----
+
 type accountChangeSetPlainBytesOld []byte
 
 func (b accountChangeSetPlainBytesOld) Walk(f func(k, v []byte) error) error {
@@ -387,3 +389,5 @@ func findValue(b []byte, i int) ([]byte, error) {
 	}
 	return b[valsPointer+lenOfValStart : valsPointer+lenOfValEnd], nil
 }
+
+// ---- Copy-Paste of code to decode ChangeSets: End -----
