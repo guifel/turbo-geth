@@ -256,7 +256,7 @@ func UnwindExecutionStage(u *UnwindState, s *StageState, stateDB ethdb.Database,
 	}
 
 	if err := changeset.Truncate(tx.(ethdb.HasTx).Tx(), u.UnwindPoint+1); err != nil {
-		return err
+		return fmt.Errorf("[%s] %w", logPrefix, err)
 	}
 
 	if writeReceipts {

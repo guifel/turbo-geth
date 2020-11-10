@@ -151,26 +151,30 @@ func Walk(db ethdb.Database, bucket string, startkey []byte, fixedbits int, walk
 func Truncate(tx ethdb.Tx, from uint64) error {
 	keyStart := dbutils.EncodeBlockNumber(from)
 
-	c := tx.CursorDupSort(dbutils.PlainAccountChangeSetBucket)
-	defer c.Close()
-	for k, _, err := c.Seek(keyStart); k != nil; k, _, err = c.NextNoDup() {
-		if err != nil {
-			return err
-		}
-		err = c.DeleteCurrentDuplicates()
-		if err != nil {
-			return err
+	{
+		c := tx.CursorDupSort(dbutils.PlainAccountChangeSetBucket)
+		defer c.Close()
+		for k, _, err := c.Seek(keyStart); k != nil; k, _, err = c.NextNoDup() {
+			if err != nil {
+				return err
+			}
+			err = c.DeleteCurrentDuplicates()
+			if err != nil {
+				return err
+			}
 		}
 	}
-	c2 := tx.CursorDupSort(dbutils.PlainStorageChangeSetBucket)
-	defer c2.Close()
-	for k, _, err := c2.Seek(keyStart); k != nil; k, _, err = c2.NextNoDup() {
-		if err != nil {
-			return err
-		}
-		err = c.DeleteCurrentDuplicates()
-		if err != nil {
-			return err
+	{
+		c := tx.CursorDupSort(dbutils.PlainStorageChangeSetBucket)
+		defer c.Close()
+		for k, _, err := c.Seek(keyStart); k != nil; k, _, err = c.NextDup() {
+			if err != nil {
+				return err
+			}
+			err = c.DeleteCurrentDuplicates()
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
