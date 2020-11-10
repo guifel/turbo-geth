@@ -236,46 +236,28 @@ func checkChangeSet(db ethdb.Database, blockNum uint64, expectedAccountChanges *
 	return nil
 }
 
-func checkHistory(db ethdb.Getter, changeSetBucket string, blockNum uint64) error {
-	currentKey := dbutils.EncodeTimestamp(blockNum)
-
-	var walker func([]byte) changeset.Walker
-	if dbutils.AccountChangeSetBucket == changeSetBucket {
-		walker = func(cs []byte) changeset.Walker {
-			return changeset.AccountChangeSetBytes(cs)
-		}
-	}
-
-	if dbutils.StorageChangeSetBucket == changeSetBucket {
-		walker = func(cs []byte) changeset.Walker {
-			return changeset.StorageChangeSetBytes(cs)
-		}
-	}
+func checkHistory(db ethdb.Database, changeSetBucket string, blockNum uint64) error {
+	currentKey := dbutils.EncodeBlockNumber(blockNum)
 
 	vv, ok := changeset.Mapper[changeSetBucket]
 	if !ok {
 		return errors.New("unknown bucket type")
 	}
 
-	if err := db.Walk(changeSetBucket, currentKey, 0, func(k, v []byte) (b bool, e error) {
-		blockNum, _ := dbutils.DecodeTimestamp(k)
-		if err := walker(v).Walk(func(key, val []byte) error {
-			indexBytes, innerErr := db.GetIndexChunk(vv.IndexBucket, key, blockNum)
-			if innerErr != nil {
-				return innerErr
-			}
+	if err := changeset.Walk(db, changeSetBucket, currentKey, 0, func(blockN uint64, k, v []byte) (bool, error) {
+		indexBytes, innerErr := db.GetIndexChunk(vv.IndexBucket, k, blockN)
+		if innerErr != nil {
+			return false, innerErr
+		}
 
-			index := dbutils.WrapHistoryIndex(indexBytes)
-			if findVal, _, ok := index.Search(blockNum); !ok {
-				return fmt.Errorf("%v,%v,%v", blockNum, findVal, common.Bytes2Hex(key))
-			}
-			return nil
-		}); err != nil {
-			return false, err
+		index := dbutils.WrapHistoryIndex(indexBytes)
+		if findVal, _, ok := index.Search(blockN); !ok {
+			return false, fmt.Errorf("%v,%v,%v", blockN, findVal, common.Bytes2Hex(k))
 		}
 		return true, nil
 	}); err != nil {
 		return err
 	}
+
 	return nil
 }

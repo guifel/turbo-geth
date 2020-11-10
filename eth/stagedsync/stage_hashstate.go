@@ -186,9 +186,9 @@ type Promoter struct {
 }
 
 func getExtractFunc(db ethdb.Getter, changeSetBucket string) etl.ExtractFunc {
-	fromDBFormat := changeset.FromDBFormat(changeset.Mapper[changeSetBucket].KeySize)
+	decode := changeset.Mapper[changeSetBucket].Decode
 	return func(dbKey, dbValue []byte, next etl.ExtractNextFunc) error {
-		_, k, _ := fromDBFormat(dbKey, dbValue)
+		_, k, _ := decode(dbKey, dbValue)
 		// ignoring value un purpose, we want the latest one and it is in PlainStateBucket
 		value, err := db.Get(dbutils.PlainStateBucket, k)
 		if err != nil && !errors.Is(err, ethdb.ErrKeyNotFound) {
@@ -203,9 +203,9 @@ func getExtractFunc(db ethdb.Getter, changeSetBucket string) etl.ExtractFunc {
 }
 
 func getExtractCode(db ethdb.Getter, changeSetBucket string) etl.ExtractFunc {
-	fromDBFormat := changeset.FromDBFormat(changeset.Mapper[changeSetBucket].KeySize)
+	decode := changeset.Mapper[changeSetBucket].Decode
 	return func(dbKey, dbValue []byte, next etl.ExtractNextFunc) error {
-		_, k, _ := fromDBFormat(dbKey, dbValue)
+		_, k, _ := decode(dbKey, dbValue)
 		value, err := db.Get(dbutils.PlainStateBucket, k)
 		if err != nil && !errors.Is(err, ethdb.ErrKeyNotFound) {
 			return err
@@ -238,9 +238,9 @@ func getExtractCode(db ethdb.Getter, changeSetBucket string) etl.ExtractFunc {
 }
 
 func getUnwindExtractStorage(changeSetBucket string) etl.ExtractFunc {
-	fromDBFormat := changeset.FromDBFormat(changeset.Mapper[changeSetBucket].KeySize)
+	decode := changeset.Mapper[changeSetBucket].Decode
 	return func(dbKey, dbValue []byte, next etl.ExtractNextFunc) error {
-		_, k, v := fromDBFormat(dbKey, dbValue)
+		_, k, v := decode(dbKey, dbValue)
 		newK, err := transformPlainStateKey(k)
 		if err != nil {
 			return err
@@ -250,9 +250,9 @@ func getUnwindExtractStorage(changeSetBucket string) etl.ExtractFunc {
 }
 
 func getUnwindExtractAccounts(db ethdb.Getter, changeSetBucket string) etl.ExtractFunc {
-	fromDBFormat := changeset.FromDBFormat(changeset.Mapper[changeSetBucket].KeySize)
+	decode := changeset.Mapper[changeSetBucket].Decode
 	return func(dbKey, dbValue []byte, next etl.ExtractNextFunc) error {
-		_, k, v := fromDBFormat(dbKey, dbValue)
+		_, k, v := decode(dbKey, dbValue)
 		newK, err := transformPlainStateKey(k)
 		if err != nil {
 			return err
@@ -284,9 +284,9 @@ func getUnwindExtractAccounts(db ethdb.Getter, changeSetBucket string) etl.Extra
 }
 
 func getCodeUnwindExtractFunc(db ethdb.Getter, changeSetBucket string) etl.ExtractFunc {
-	fromDBFormat := changeset.FromDBFormat(changeset.Mapper[changeSetBucket].KeySize)
+	decode := changeset.Mapper[changeSetBucket].Decode
 	return func(dbKey, dbValue []byte, next etl.ExtractNextFunc) error {
-		_, k, v := fromDBFormat(dbKey, dbValue)
+		_, k, v := decode(dbKey, dbValue)
 		if len(v) == 0 {
 			return nil
 		}

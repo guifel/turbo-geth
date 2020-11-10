@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/common/changeset"
 	"github.com/ledgerwatch/turbo-geth/common/dbutils"
 	"github.com/ledgerwatch/turbo-geth/ethdb"
@@ -28,10 +27,11 @@ func CheckEnc(chaindata string) error {
 		currentSize uint64
 		newSize     uint64
 	)
+
 	//set test methods
-	chainDataStorageDecoder := changeset.FromDBFormat(common.HashLength)
+	chainDataStorageDecoder := changeset.Mapper[dbutils.StorageChangeSetBucket].Decode
 	testStorageEncoder := changeset.EncodeStorage
-	testStorageDecoder := changeset.FromDBFormat(common.HashLength)
+	testStorageDecoder := changeset.Mapper[dbutils.StorageChangeSetBucket].Decode
 
 	startTime := time.Now()
 	ch := make(chan struct {

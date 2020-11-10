@@ -83,8 +83,15 @@ func TestMutation_DeleteTimestamp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = db.Get(dbutils.AccountChangeSetBucket, dbutils.EncodeTimestamp(1))
-	if err != ethdb.ErrKeyNotFound {
+	count := 0
+	err = changeset.Walk(db, dbutils.StorageChangeSetBucket, dbutils.EncodeBlockNumber(1), 8*8, func(blockN uint64, k, v []byte) (bool, error) {
+		count++
+		return true, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
 		t.Fatal("changeset must be deleted")
 	}
 

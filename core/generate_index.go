@@ -196,9 +196,9 @@ func loadFunc(k []byte, value []byte, state etl.CurrentTableReader, next etl.Loa
 }
 
 func getExtractFunc(changeSetBucket string) etl.ExtractFunc { //nolint
-	fromDBFormat := changeset.FromDBFormat(changeset.Mapper[changeSetBucket].KeySize)
+	decode := changeset.Mapper[changeSetBucket].Decode
 	return func(dbKey, dbValue []byte, next etl.ExtractNextFunc) error {
-		blockNum, k, v := fromDBFormat(dbKey, dbValue)
+		blockNum, k, v := decode(dbKey, dbValue)
 
 		newV := make([]byte, 9)
 		binary.BigEndian.PutUint64(newV, blockNum)

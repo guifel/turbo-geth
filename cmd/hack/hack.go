@@ -973,23 +973,19 @@ func readAccount(chaindata string, account common.Address, block uint64, rewind 
 	timestamp := block
 	for i := uint64(0); i < rewind; i++ {
 		var printed bool
-		encodedTS := dbutils.EncodeTimestamp(timestamp)
-		var v []byte
-		v, _ = ethDb.Get(dbutils.StorageChangeSetBucket, encodedTS)
-		if v != nil {
-			err = changeset.StorageChangeSetBytes(v).Walk(func(key, value []byte) error {
-				if bytes.HasPrefix(key, secKey) {
-					incarnation := binary.BigEndian.Uint64(key[common.HashLength : common.HashLength+common.IncarnationLength])
-					if !printed {
-						fmt.Printf("Changes for block %d\n", timestamp)
-						printed = true
-					}
-					fmt.Printf("%d %x %x\n", incarnation, key[common.HashLength+common.IncarnationLength:], value)
+		encodedTS := dbutils.EncodeBlockNumber(timestamp)
+		err = changeset.Walk(ethDb, dbutils.StorageChangeSetBucket, encodedTS, 8*8, func(blockN uint64, k, v []byte) (bool, error) {
+			if bytes.HasPrefix(k, secKey) {
+				incarnation := binary.BigEndian.Uint64(k[common.HashLength : common.HashLength+common.IncarnationLength])
+				if !printed {
+					fmt.Printf("Changes for block %d\n", timestamp)
+					printed = true
 				}
-				return nil
-			})
-			check(err)
-		}
+				fmt.Printf("%d %x %x\n", incarnation, k[common.HashLength+common.IncarnationLength:], v)
+			}
+			return true, nil
+		})
+		check(err)
 		timestamp--
 	}
 }
@@ -1429,57 +1425,33 @@ func changeSetStats(chaindata string, block1, block2 uint64) error {
 	fmt.Printf("stAccounts = %d, stStorage = %d\n", stAccounts, stStorage)
 	fmt.Printf("Changeset stats from %d to %d\n", block1, block2)
 	accounts := make(map[string]struct{})
-	if err := db.KV().View(context.Background(), func(tx ethdb.Tx) error {
-		c := tx.Cursor(dbutils.PlainAccountChangeSetBucket)
-		start := dbutils.EncodeTimestamp(block1)
-		for k, v, err := c.Seek(start); k != nil; k, v, err = c.Next() {
-			if err != nil {
-				return err
-			}
-			timestamp, _ := dbutils.DecodeTimestamp(k)
-			if timestamp >= block2 {
-				break
-			}
-			if (timestamp-block1)%100000 == 0 {
-				fmt.Printf("at the block %d for accounts, booster size: %d\n", timestamp, len(accounts))
-			}
-			if err1 := changeset.AccountChangeSetPlainBytes(v).Walk(func(kk, _ []byte) error {
-				accounts[string(common.CopyBytes(kk))] = struct{}{}
-				return nil
-			}); err1 != nil {
-				return err1
-			}
+	if err := changeset.Walk(db, dbutils.PlainAccountChangeSetBucket, dbutils.EncodeBlockNumber(block1), 0, func(blockN uint64, k, v []byte) (bool, error) {
+		if blockN >= block2 {
+			return false, nil
 		}
-		return nil
+		if (blockN-block1)%100000 == 0 {
+			fmt.Printf("at the block %d for accounts, booster size: %d\n", blockN, len(accounts))
+		}
+		accounts[string(common.CopyBytes(k))] = struct{}{}
+		return true, nil
 	}); err != nil {
 		return err
 	}
+
 	storage := make(map[string]struct{})
-	if err := db.KV().View(context.Background(), func(tx ethdb.Tx) error {
-		c := tx.Cursor(dbutils.PlainStorageChangeSetBucket)
-		start := dbutils.EncodeTimestamp(block1)
-		for k, v, err := c.Seek(start); k != nil; k, v, err = c.Next() {
-			if err != nil {
-				return err
-			}
-			timestamp, _ := dbutils.DecodeTimestamp(k)
-			if timestamp >= block2 {
-				break
-			}
-			if (timestamp-block1)%100000 == 0 {
-				fmt.Printf("at the block %d for storage, booster size: %d\n", timestamp, len(storage))
-			}
-			if err1 := changeset.StorageChangeSetPlainBytes(v).Walk(func(kk, _ []byte) error {
-				storage[string(common.CopyBytes(kk))] = struct{}{}
-				return nil
-			}); err1 != nil {
-				return err1
-			}
+	if err := changeset.Walk(db, dbutils.PlainStorageChangeSetBucket, dbutils.EncodeBlockNumber(block1), 0, func(blockN uint64, k, v []byte) (bool, error) {
+		if blockN >= block2 {
+			return false, nil
 		}
-		return nil
+		if (blockN-block1)%100000 == 0 {
+			fmt.Printf("at the block %d for accounts, booster size: %d\n", blockN, len(accounts))
+		}
+		storage[string(common.CopyBytes(k))] = struct{}{}
+		return true, nil
 	}); err != nil {
 		return err
 	}
+
 	fmt.Printf("accounts changed: %d, storage changed: %d\n", len(accounts), len(storage))
 	return nil
 }
@@ -1488,25 +1460,11 @@ func searchChangeSet(chaindata string, key []byte, block uint64) error {
 	fmt.Printf("Searching changesets\n")
 	db := ethdb.MustOpen(chaindata)
 	defer db.Close()
-	if err := db.KV().View(context.Background(), func(tx ethdb.Tx) error {
-		c := tx.Cursor(dbutils.PlainAccountChangeSetBucket)
-		start := dbutils.EncodeTimestamp(block)
-		for k, v, err := c.Seek(start); k != nil; k, v, err = c.Next() {
-			if err != nil {
-				return err
-			}
-			timestamp, _ := dbutils.DecodeTimestamp(k)
-			//fmt.Printf("timestamp: %d\n", timestamp)
-			if err1 := changeset.AccountChangeSetPlainBytes(v).Walk(func(kk, vv []byte) error {
-				if bytes.Equal(kk, key) {
-					fmt.Printf("Found in block %d with value %x\n", timestamp, vv)
-				}
-				return nil
-			}); err1 != nil {
-				return err1
-			}
+	if err := changeset.Walk(db, dbutils.PlainAccountChangeSetBucket, dbutils.EncodeBlockNumber(block), 0, func(blockN uint64, k, v []byte) (bool, error) {
+		if bytes.Equal(k, key) {
+			fmt.Printf("Found in block %d with value %x\n", blockN, v)
 		}
-		return nil
+		return true, nil
 	}); err != nil {
 		return err
 	}
@@ -1517,27 +1475,15 @@ func searchStorageChangeSet(chaindata string, key []byte, block uint64) error {
 	fmt.Printf("Searching storage changesets\n")
 	db := ethdb.MustOpen(chaindata)
 	defer db.Close()
-	if err := db.KV().View(context.Background(), func(tx ethdb.Tx) error {
-		c := tx.Cursor(dbutils.PlainStorageChangeSetBucket)
-		start := dbutils.EncodeTimestamp(block)
-		for k, v, err := c.Seek(start); k != nil; k, v, err = c.Next() {
-			if err != nil {
-				return err
-			}
-			timestamp, _ := dbutils.DecodeTimestamp(k)
-			if err1 := changeset.StorageChangeSetPlainBytes(v).Walk(func(kk, vv []byte) error {
-				if bytes.Equal(kk, key) {
-					fmt.Printf("Found in block %d with value %x\n", timestamp, vv)
-				}
-				return nil
-			}); err1 != nil {
-				return err1
-			}
+	if err := changeset.Walk(db, dbutils.PlainStorageChangeSetBucket, dbutils.EncodeBlockNumber(block), 0, func(blockN uint64, k, v []byte) (bool, error) {
+		if bytes.Equal(k, key) {
+			fmt.Printf("Found in block %d with value %x\n", blockN, v)
 		}
-		return nil
+		return true, nil
 	}); err != nil {
 		return err
 	}
+
 	return nil
 }
 

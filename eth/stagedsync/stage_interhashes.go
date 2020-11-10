@@ -147,9 +147,9 @@ func (p *HashPromoter) Promote(logPrefix string, s *StageState, from, to uint64,
 
 	startkey := dbutils.EncodeBlockNumber(from + 1)
 
-	fromDBFormat := changeset.FromDBFormat(changeset.Mapper[changeSetBucket].KeySize)
+	decode := changeset.Mapper[changeSetBucket].Decode
 	extract := func(dbKey, dbValue []byte, next etl.ExtractNextFunc) error {
-		_, k, _ := fromDBFormat(dbKey, dbValue)
+		_, k, _ := decode(dbKey, dbValue)
 		newK, err := transformPlainStateKey(k)
 		if err != nil {
 			return err
@@ -191,9 +191,9 @@ func (p *HashPromoter) Unwind(logPrefix string, s *StageState, u *UnwindState, s
 
 	startkey := dbutils.EncodeBlockNumber(to + 1)
 
-	fromDBFormat := changeset.FromDBFormat(changeset.Mapper[changeSetBucket].KeySize)
+	decode := changeset.Mapper[changeSetBucket].Decode
 	extract := func(dbKey, dbValue []byte, next etl.ExtractNextFunc) error {
-		_, k, _ := fromDBFormat(dbKey, dbValue)
+		_, k, _ := decode(dbKey, dbValue)
 		newK, err := transformPlainStateKey(k)
 		if err != nil {
 			return err
