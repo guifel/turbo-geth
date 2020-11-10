@@ -192,6 +192,7 @@ type Backend interface {
 	AddLocal([]byte) ([]byte, error)
 	Etherbase() (common.Address, error)
 	NetVersion() (uint64, error)
+	Subscribe() error
 }
 
 type DbProvider uint8
