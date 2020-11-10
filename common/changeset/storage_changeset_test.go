@@ -265,7 +265,7 @@ func TestEncodingStorageNewWithoutNotDefaultIncarnationFindHashed(t *testing.T) 
 		}
 	}
 
-	doTestFind(t, tx, bkt, hashKeyGenerator, m.New, m.Encode, m.Decode, cs.Find, clear)
+	doTestFind(t, tx, bkt, hashKeyGenerator, m.New, m.Encode, m.Decode, cs.FindWithIncarnation, clear)
 }
 
 func TestEncodingStorageNewWithoutNotDefaultIncarnationFindPlain(t *testing.T) {
@@ -295,7 +295,7 @@ func TestEncodingStorageNewWithoutNotDefaultIncarnationFindPlain(t *testing.T) {
 		}
 	}
 
-	doTestFind(t, tx, bkt, plainKeyGenerator, m.New, m.Encode, m.Decode, cs.Find, clear)
+	doTestFind(t, tx, bkt, plainKeyGenerator, m.New, m.Encode, m.Decode, cs.FindWithIncarnation, clear)
 }
 
 func TestEncodingStorageNewWithoutNotDefaultIncarnationFindWithoutIncarnationHashed(t *testing.T) {
