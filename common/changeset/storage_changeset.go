@@ -59,7 +59,7 @@ func (b StorageChangeSet) Walk(from, to uint64, f func(blockNum uint64, k, v []b
 }
 
 func (b StorageChangeSet) Find(blockNumber uint64, k []byte) ([]byte, error) {
-	return findWithoutIncarnationInStorageChangeSet2(b.c, blockNumber, common.HashLength, k[:common.HashLength], k[common.HashLength+common.IncarnationLength:])
+	return findWithoutIncarnationInStorageChangeSet2(b.c, blockNumber, common.HashLength, k[:common.HashLength], k[common.HashLength:])
 }
 func (b StorageChangeSet) FindWithIncarnation(blockNumber uint64, k []byte) ([]byte, error) {
 	return findInStorageChangeSet2(b.c, blockNumber, common.HashLength, k)
