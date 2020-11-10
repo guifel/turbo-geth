@@ -399,6 +399,7 @@ type contractKeys struct {
 	Vals        [][]byte
 }
 
+//nolint:unused,deadcode
 func encodeStorage(s *changeset.ChangeSet, keyPrefixLen uint32) ([]byte, error) {
 	sort.Sort(s)
 	var err error
@@ -556,6 +557,7 @@ len(val0), len(val0)+len(val1), ..., len(val0)+len(val1)+...+len(val_{N-1})
 
 uint32 integers are serialized as big-endian.
 */
+//nolint:unused,deadcode
 func encodeAccounts(s *changeset.ChangeSet) ([]byte, error) {
 	sort.Sort(s)
 	buf := new(bytes.Buffer)
