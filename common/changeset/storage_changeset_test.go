@@ -33,13 +33,6 @@ func emptyValueGenerator(j int) []byte {
 	return []byte{}
 }
 
-type csStorageBytes interface {
-	Walk(func([]byte, []byte) error) error
-	Find([]byte) ([]byte, error)
-	FindWithoutIncarnation([]byte, []byte) ([]byte, error)
-	FindWithIncarnation([]byte) ([]byte, error)
-}
-
 func getTestDataAtIndex(i, j int, inc uint64, generator func(common.Address, uint64, common.Hash) []byte) []byte {
 	address := common.HexToAddress(fmt.Sprintf("0xBe828AD8B538D1D691891F6c725dEdc5989abBc%d", i))
 	key, _ := common.HashData([]byte("key" + strconv.Itoa(j)))
