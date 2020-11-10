@@ -50,15 +50,14 @@ func (ig *IndexGenerator) GenerateIndex(startBlock, endBlock uint64, changeSetBu
 		getExtractFunc(changeSetBucket),
 		loadFunc,
 		etl.TransformArgs{
-			ExtractStartKey: dbutils.EncodeTimestamp(startBlock),
-			ExtractEndKey:   dbutils.EncodeTimestamp(endBlock),
+			ExtractStartKey: dbutils.EncodeBlockNumber(startBlock),
+			ExtractEndKey:   dbutils.EncodeBlockNumber(endBlock),
 			FixedBits:       0,
 			BufferType:      etl.SortableAppendBuffer,
 			BufferSize:      ig.ChangeSetBufSize,
 			Quit:            ig.quitCh,
 			LogDetailsExtract: func(k, v []byte) (additionalLogArguments []interface{}) {
-				blockNum, _ := dbutils.DecodeTimestamp(k)
-				return []interface{}{"block", blockNum}
+				return []interface{}{"block", binary.BigEndian.Uint64(k)}
 			},
 		},
 	)
@@ -199,15 +198,13 @@ func loadFunc(k []byte, value []byte, state etl.CurrentTableReader, next etl.Loa
 func getExtractFunc(changeSetBucket string) etl.ExtractFunc { //nolint
 	fromDBFormat := changeset.FromDBFormat(changeset.Mapper[changeSetBucket].KeySize)
 	return func(dbKey, dbValue []byte, next etl.ExtractNextFunc) error {
-		fmt.Printf("1: %s, %x\n", changeSetBucket, dbKey)
 		blockNum, k, v := fromDBFormat(dbKey, dbValue)
 
-		key := common.CopyBytes(k)
 		newV := make([]byte, 9)
 		binary.BigEndian.PutUint64(newV, blockNum)
 		if len(v) == 0 {
 			newV[8] = 1
 		}
-		return next(dbKey, key, v)
+		return next(dbKey, k, newV)
 	}
 }
