@@ -22,16 +22,6 @@ func EncodeAccounts(blockN uint64, s *ChangeSet, f func(k, v []byte) error) erro
 	return encodeAccounts2(blockN, s, f)
 }
 
-type AccountChangeSetBytes []byte
-
-func (b AccountChangeSetBytes) Walk(f func(k, v []byte) error) error {
-	return walkAccountChangeSet(b, common.HashLength, f)
-}
-
-func (b AccountChangeSetBytes) Find(k []byte) ([]byte, error) {
-	return findInAccountChangeSetBytes(b, k, common.HashLength)
-}
-
 type AccountChangeSet struct{ c ethdb.CursorDupSort }
 
 func (b AccountChangeSet) WalkReverse(from, to uint64, f func(blockNum uint64, k, v []byte) error) error {
@@ -71,16 +61,6 @@ func (b AccountChangeSetPlain) Walk(from, to uint64, f func(blockNum uint64, k, 
 
 func (b AccountChangeSetPlain) Find(blockNumber uint64, k []byte) ([]byte, error) {
 	return findInAccountChangeSet(b.c, blockNumber, k, common.AddressLength)
-}
-
-type AccountChangeSetPlainBytes []byte
-
-func (b AccountChangeSetPlainBytes) Walk(f func(k, v []byte) error) error {
-	return walkAccountChangeSet(b, common.AddressLength, f)
-}
-
-func (b AccountChangeSetPlainBytes) Find(k []byte) ([]byte, error) {
-	return findInAccountChangeSetBytes(b, k, common.AddressLength)
 }
 
 // GetModifiedAccounts returns a list of addresses that were modified in the block range

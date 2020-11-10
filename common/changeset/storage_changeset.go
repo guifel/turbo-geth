@@ -31,23 +31,6 @@ func EncodeStorage(blockN uint64, s *ChangeSet, f func(k, v []byte) error) error
 	return encodeStorage2(blockN, s, common.HashLength, f)
 }
 
-type StorageChangeSetBytes []byte
-
-func (b StorageChangeSetBytes) Walk(f func(k, v []byte) error) error {
-	return walkStorageChangeSet(b, common.HashLength, f)
-}
-
-func (b StorageChangeSetBytes) Find(k []byte) ([]byte, error) {
-	return findWithoutIncarnationInStorageChangeSet(b, common.HashLength, k[:common.HashLength], k[common.HashLength:])
-}
-func (b StorageChangeSetBytes) FindWithIncarnation(k []byte) ([]byte, error) {
-	return findInStorageChangeSet(b, common.HashLength, k)
-}
-
-func (b StorageChangeSetBytes) FindWithoutIncarnation(addrHashToFind []byte, keyHashToFind []byte) ([]byte, error) {
-	return findWithoutIncarnationInStorageChangeSet(b, common.HashLength, addrHashToFind, keyHashToFind)
-}
-
 type StorageChangeSet struct{ c ethdb.CursorDupSort }
 
 func (b StorageChangeSet) WalkReverse(from, to uint64, f func(blockNum uint64, k, v []byte) error) error {
@@ -59,7 +42,7 @@ func (b StorageChangeSet) Walk(from, to uint64, f func(blockNum uint64, k, v []b
 }
 
 func (b StorageChangeSet) Find(blockNumber uint64, k []byte) ([]byte, error) {
-	return findWithoutIncarnationInStorageChangeSet2(b.c, blockNumber, common.HashLength, k[:common.HashLength], k[common.HashLength:])
+	return findWithoutIncarnationInStorageChangeSet2(b.c, blockNumber, common.HashLength, k[:common.HashLength], k[common.HashLength+common.IncarnationLength:])
 }
 func (b StorageChangeSet) FindWithIncarnation(blockNumber uint64, k []byte) ([]byte, error) {
 	return findInStorageChangeSet2(b.c, blockNumber, common.HashLength, k)
@@ -102,24 +85,6 @@ func (b StorageChangeSetPlain) FindWithIncarnation(blockNumber uint64, k []byte)
 
 func (b StorageChangeSetPlain) FindWithoutIncarnation(blockNumber uint64, addressToFind []byte, keyToFind []byte) ([]byte, error) {
 	return findWithoutIncarnationInStorageChangeSet2(b.c, blockNumber, common.AddressLength, addressToFind, keyToFind)
-}
-
-type StorageChangeSetPlainBytes []byte
-
-func (b StorageChangeSetPlainBytes) Walk(f func(k, v []byte) error) error {
-	return walkStorageChangeSet(b, common.AddressLength, f)
-}
-
-func (b StorageChangeSetPlainBytes) Find(k []byte) ([]byte, error) {
-	return findWithoutIncarnationInStorageChangeSet(b, common.AddressLength, k[:common.AddressLength], k[common.AddressLength:])
-}
-
-func (b StorageChangeSetPlainBytes) FindWithIncarnation(k []byte) ([]byte, error) {
-	return findInStorageChangeSet(b, common.AddressLength, k)
-}
-
-func (b StorageChangeSetPlainBytes) FindWithoutIncarnation(addressToFind []byte, keyToFind []byte) ([]byte, error) {
-	return findWithoutIncarnationInStorageChangeSet(b, common.AddressLength, addressToFind, keyToFind)
 }
 
 // RewindData generates rewind data for all buckets between the timestamp
