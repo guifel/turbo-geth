@@ -97,6 +97,10 @@ func (opts LmdbOpts) Open() (kv KV, err error) {
 	if err != nil {
 		return nil, err
 	}
+	err = env.SetMaxReaders(512)
+	if err != nil {
+		return nil, err
+	}
 
 	var logger log.Logger
 	if opts.inMem {
@@ -906,6 +910,12 @@ func (c *LmdbCursor) seekDupSort(seek []byte) (k, v []byte, err error) {
 		}
 		if c.prefix != nil && !bytes.HasPrefix(k, c.prefix) {
 			k, v = nil, nil
+		}
+		if len(k) == to {
+			k2 := make([]byte, 0, len(k)+from-to)
+			k2 = append(append(k2, k...), v[:from-to]...)
+			v = v[from-to:]
+			k = k2
 		}
 		return k, v, nil
 	}

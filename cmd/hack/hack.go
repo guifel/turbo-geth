@@ -883,32 +883,6 @@ func printTxHashes() {
 	}
 }
 
-func relayoutKeys() {
-	//db := ethdb.MustOpen("/home/akhounov/.ethereum/geth/chaindata")
-	db := ethdb.MustOpen(node.DefaultDataDir() + "/geth/chaindata")
-	defer db.Close()
-	var accountChangeSetCount, storageChangeSetCount int
-	err := db.KV().View(context.Background(), func(tx ethdb.Tx) error {
-		c := tx.Cursor(dbutils.AccountChangeSetBucket2)
-		for k, _, _ := c.First(); k != nil; k, _, _ = c.Next() {
-			accountChangeSetCount++
-		}
-		return nil
-	})
-	check(err)
-	err = db.KV().View(context.Background(), func(tx ethdb.Tx) error {
-		c := tx.Cursor(dbutils.StorageChangeSetBucket2)
-		for k, _, _ := c.First(); k != nil; k, _, _ = c.Next() {
-			storageChangeSetCount++
-		}
-		return nil
-	})
-	check(err)
-	fmt.Printf("Account changeset: %d\n", accountChangeSetCount)
-	fmt.Printf("Storage changeset: %d\n", storageChangeSetCount)
-	fmt.Printf("Total: %d\n", accountChangeSetCount+storageChangeSetCount)
-}
-
 func readTrie(filename string) *trie.Trie {
 	f, err := os.Open(filename)
 	check(err)
@@ -1001,7 +975,7 @@ func readAccount(chaindata string, account common.Address, block uint64, rewind 
 		var printed bool
 		encodedTS := dbutils.EncodeTimestamp(timestamp)
 		var v []byte
-		v, _ = ethDb.Get(dbutils.StorageChangeSetBucket2, encodedTS)
+		v, _ = ethDb.Get(dbutils.StorageChangeSetBucket, encodedTS)
 		if v != nil {
 			err = changeset.StorageChangeSetBytes(v).Walk(func(key, value []byte) error {
 				if bytes.HasPrefix(key, secKey) {
@@ -1318,22 +1292,20 @@ func testGetProof(chaindata string, address common.Address, rewind int, regen bo
 	ts := dbutils.EncodeBlockNumber(block + 1)
 	accountMap := make(map[string]*accounts.Account)
 
-	if err := db.Walk(dbutils.AccountChangeSetBucket2, ts, 0, func(k, v []byte) (bool, error) {
-		timestamp := binary.BigEndian.Uint64(k)
-		if timestamp > *headNumber {
+	if err := changeset.Walk(db, dbutils.AccountChangeSetBucket, ts, 0, func(blockN uint64, k, v []byte) (bool, error) {
+		if blockN > *headNumber {
 			return false, nil
 		}
 
-		kk, vv := v[:32], v[32:]
-		if _, ok := accountMap[string(kk)]; !ok {
-			if len(vv) > 0 {
+		if _, ok := accountMap[string(k)]; !ok {
+			if len(v) > 0 {
 				var a accounts.Account
-				if innerErr := a.DecodeForStorage(vv); innerErr != nil {
+				if innerErr := a.DecodeForStorage(v); innerErr != nil {
 					return false, innerErr
 				}
-				accountMap[string(kk)] = &a
+				accountMap[string(k)] = &a
 			} else {
-				accountMap[string(kk)] = nil
+				accountMap[string(k)] = nil
 			}
 		}
 		return true, nil
@@ -1344,14 +1316,12 @@ func testGetProof(chaindata string, address common.Address, rewind int, regen bo
 	log.Info("Constructed account map", "size", len(accountMap),
 		"alloc", common.StorageSize(m.Alloc), "sys", common.StorageSize(m.Sys), "numGC", int(m.NumGC))
 	storageMap := make(map[string][]byte)
-	if err := db.Walk(dbutils.StorageChangeSetBucket2, ts, 0, func(k, v []byte) (bool, error) {
-		timestamp := binary.BigEndian.Uint64(k)
-		if timestamp > *headNumber {
+	if err := changeset.Walk(db, dbutils.StorageChangeSetBucket, ts, 0, func(blockN uint64, k, v []byte) (bool, error) {
+		if blockN > *headNumber {
 			return false, nil
 		}
-		kk, vv := v[:72], v[72:]
-		if _, ok := storageMap[string(kk)]; !ok {
-			storageMap[string(kk)] = vv
+		if _, ok := storageMap[string(k)]; !ok {
+			storageMap[string(k)] = v
 		}
 		return true, nil
 	}); err != nil {
@@ -2096,6 +2066,41 @@ func extracHeaders(chaindata string, block uint64) error {
 func receiptSizes(chaindata string) error {
 	db := ethdb.MustOpen(chaindata)
 	defer db.Close()
+	tx, err := db.KV().Begin(context.Background(), nil, ethdb.RW)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	fmt.Printf("bucket: %s\n", dbutils.Log)
+	c := tx.Cursor(dbutils.Log)
+	defer c.Close()
+	sizes := make(map[int]int)
+	for k, v, err := c.First(); k != nil; k, v, err = c.Next() {
+		if err != nil {
+			return err
+		}
+		sizes[len(v)]++
+	}
+	var lens = make([]int, len(sizes))
+	i := 0
+	for l := range sizes {
+		lens[i] = l
+		i++
+	}
+	sort.Ints(lens)
+	for _, l := range lens {
+		if sizes[l] < 100000 {
+			continue
+		}
+		fmt.Printf("%6d - %d\n", l, sizes[l])
+	}
+	return nil
+}
+
+func dupSz(chaindata string) error {
+	db := ethdb.MustOpen(chaindata)
+	defer db.Close()
 	kv := db.KV()
 	tx, err := kv.Begin(context.Background(), nil, ethdb.RO)
 	if err != nil {
@@ -2103,79 +2108,23 @@ func receiptSizes(chaindata string) error {
 	}
 	defer tx.Rollback()
 
-	//sizes := make(map[string]int)
-	//bkt := dbutils.PlainAccountChangeSetBucket3
-
-	bkt := dbutils.PlainAccountChangeSetBucket
-	fmt.Printf("bucket: %s\n", bkt)
-	c := tx.CursorDupSort(bkt)
+	c := tx.CursorDupSort(*bucket)
+	fmt.Printf("bkt: %s\n", *bucket)
 	defer c.Close()
-
-	blockN := 0
-	accs := 0
-	values := 0
-	walkerAdapter := changeset.Mapper[dbutils.PlainAccountChangeSetBucket2].WalkerAdapter
-	for k, v, err := c.First(); k != nil; k, v, err = c.Next() {
+	total := 0
+	for k, v, err := c.First(); k != nil; k, v, err = c.NextNoDup() {
 		check(err)
-		blockN += len(k) + 8
-		err = walkerAdapter(v).Walk(func(k, v []byte) error {
-			accs += len(k)
-			values += len(v)
-			return nil
-		})
-		check(err)
+		//fmt.Printf("%x\n", k)
+		//fmt.Printf("\t%x\n", v)
+		total += len(k) + len(v) + 8
+		for k, v, err := c.NextDup(); k != nil; k, v, err = c.NextDup() {
+			check(err)
+			total += len(v) + 8
+			//fmt.Printf("\t%x\n", v)
+		}
 	}
-	fmt.Printf("blockN sz: %s, accs sz: %s, values sz: %s\n", common.StorageSize(blockN), common.StorageSize(accs), common.StorageSize(values))
+	fmt.Printf("total sz: %s\n", common.StorageSize(total))
 
-	bkt = dbutils.PlainStorageChangeSetBucket
-	fmt.Printf("bucket: %s\n", bkt)
-	c = tx.CursorDupSort(bkt)
-	defer c.Close()
-
-	blockN = 0
-	values = 0
-	incs := 0
-	hashes := 0
-	walkerAdapter = changeset.Mapper[dbutils.PlainStorageChangeSetBucket2].WalkerAdapter
-	for k, v, err := c.First(); k != nil; k, v, err = c.Next() {
-		check(err)
-		blockN += len(k) + 8
-		err = walkerAdapter(v).Walk(func(k, v []byte) error {
-			accs += 32
-			incs += 8
-			hashes += 32
-			values += len(v)
-			return nil
-		})
-		check(err)
-	}
-	fmt.Printf("blockN sz: %s, accs sz: %s, incs: %s, hashes: %s, values sz: %s\n", common.StorageSize(blockN), common.StorageSize(accs), common.StorageSize(incs), common.StorageSize(hashes), common.StorageSize(values))
-
-	//for k, v, err := c.First(); k != nil; k, v, err = c.NextNoDup() {
-	//	check(err)
-	//	//fmt.Printf("%x\n", k)
-	//	//fmt.Printf("\t%x\n", v)
-	//	total += len(k) + len(v) + 8
-	//	for k, v, err := c.NextDup(); k != nil; k, v, err = c.NextDup() {
-	//		check(err)
-	//		total += len(v)
-	//		//fmt.Printf("\t%x\n", v)
-	//	}
-	//}
-
-	//var lens = make([]string, len(sizes))
-	//i := 0
-	//for l := range sizes {
-	//	lens[i] = l
-	//	i++
-	//}
-	//sort.Strings(lens)
-	//for _, l := range lens {
-	//	if sizes[l] < 100000 {
-	//		continue
-	//	}
-	//	fmt.Printf("%6d - %d\n", l, sizes[l])
-	//}
 	return nil
 }
 
@@ -2339,6 +2288,11 @@ func main() {
 	}
 	if *action == "receiptSizes" {
 		if err := receiptSizes(*chaindata); err != nil {
+			fmt.Printf("Error: %v\n", err)
+		}
+	}
+	if *action == "dupSz" {
+		if err := dupSz(*chaindata); err != nil {
 			fmt.Printf("Error: %v\n", err)
 		}
 	}

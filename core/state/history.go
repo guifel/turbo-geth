@@ -139,9 +139,9 @@ func WalkAsOf(db ethdb.Tx, bucket string, hBucket string, startkey []byte, fixed
 }
 
 func walkAsOfThinStorage(tx ethdb.Tx, bucket string, hBucket string, startkey []byte, fixedbits int, timestamp uint64, walker func(k1, k2, v []byte) (bool, error)) error {
-	csBucket := dbutils.StorageChangeSetBucket2
+	csBucket := dbutils.StorageChangeSetBucket
 	if bucket == dbutils.PlainStateBucket {
-		csBucket = dbutils.PlainStorageChangeSetBucket2
+		csBucket = dbutils.PlainStorageChangeSetBucket
 	}
 
 	generatedTo, executedTo, innerErr := getIndexGenerationProgress(tx, stages.StorageHistoryIndex)
@@ -272,9 +272,9 @@ func walkAsOfThinStorage(tx ethdb.Tx, bucket string, hBucket string, startkey []
 
 func walkAsOfThinAccounts(tx ethdb.Tx, bucket string, hBucket string, startkey []byte, fixedbits int, timestamp uint64, walker func(k []byte, v []byte) (bool, error)) error {
 	fixedbytes, mask := ethdb.Bytesmask(fixedbits)
-	csBucket := dbutils.AccountChangeSetBucket2
+	csBucket := dbutils.AccountChangeSetBucket
 	if bucket == dbutils.PlainStateBucket {
-		csBucket = dbutils.PlainAccountChangeSetBucket2
+		csBucket = dbutils.PlainAccountChangeSetBucket
 	}
 
 	generatedTo, executedTo, innerErr := getIndexGenerationProgress(tx, stages.AccountHistoryIndex)
@@ -411,17 +411,17 @@ func findInHistory(hK, hV []byte, timestamp uint64, csWalker changeset.Walker2) 
 func returnCorrectWalker2(bucket, hBucket string, tx ethdb.Tx) (changeset.Walker2, ethdb.CursorDupSort) {
 	switch {
 	case bucket == dbutils.CurrentStateBucket && hBucket == dbutils.StorageHistoryBucket:
-		c := tx.CursorDupSort(dbutils.StorageChangeSetBucket2)
-		return changeset.Mapper[dbutils.StorageChangeSetBucket2].WalkerAdapter2(c), c
+		c := tx.CursorDupSort(dbutils.StorageChangeSetBucket)
+		return changeset.Mapper[dbutils.StorageChangeSetBucket].WalkerAdapter2(c), c
 	case bucket == dbutils.CurrentStateBucket && hBucket == dbutils.AccountsHistoryBucket:
-		c := tx.CursorDupSort(dbutils.AccountChangeSetBucket2)
-		return changeset.Mapper[dbutils.AccountChangeSetBucket2].WalkerAdapter2(c), c
+		c := tx.CursorDupSort(dbutils.AccountChangeSetBucket)
+		return changeset.Mapper[dbutils.AccountChangeSetBucket].WalkerAdapter2(c), c
 	case bucket == dbutils.PlainStateBucket && hBucket == dbutils.StorageHistoryBucket:
-		c := tx.CursorDupSort(dbutils.PlainStorageChangeSetBucket2)
-		return changeset.Mapper[dbutils.PlainStorageChangeSetBucket2].WalkerAdapter2(c), c
+		c := tx.CursorDupSort(dbutils.PlainStorageChangeSetBucket)
+		return changeset.Mapper[dbutils.PlainStorageChangeSetBucket].WalkerAdapter2(c), c
 	case bucket == dbutils.PlainStateBucket && hBucket == dbutils.AccountsHistoryBucket:
-		c := tx.CursorDupSort(dbutils.PlainAccountChangeSetBucket2)
-		return changeset.Mapper[dbutils.PlainAccountChangeSetBucket2].WalkerAdapter2(c), c
+		c := tx.CursorDupSort(dbutils.PlainAccountChangeSetBucket)
+		return changeset.Mapper[dbutils.PlainAccountChangeSetBucket].WalkerAdapter2(c), c
 	default:
 		panic("not implemented")
 	}
@@ -747,8 +747,8 @@ func (csd *changesetSearchDecorator) buildChangeset(from, to uint64) error {
 	}
 
 	mp := make(map[string][]byte)
-	err := csd.csWalker.WalkReverse(from, to, func(bN, k, v []byte) error {
-		replace := binary.BigEndian.Uint64(bN) >= csd.timestamp
+	err := csd.csWalker.WalkReverse(from, to, func(bN uint64, k, v []byte) error {
+		replace := bN >= csd.timestamp
 		if replace {
 			mp[string(k)] = v
 		}

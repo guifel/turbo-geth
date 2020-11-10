@@ -475,21 +475,23 @@ type contractKeys struct {
 	Vals        [][]byte
 }
 
-func walkReverse(c ethdb.CursorDupSort, from, to uint64, keyPrefixLen int, f func(kk, k, v []byte) error) error {
+func walkReverse(c ethdb.CursorDupSort, from, to uint64, keyPrefixLen int, f func(blockNum uint64, k, v []byte) error) error {
 	_, _, err := c.Seek(dbutils.EncodeBlockNumber(to + 1))
 	if err != nil {
 		return err
 	}
+	fromDBFormat := FromDBFormat(keyPrefixLen)
+	var blockNum uint64
 	for k, v, err := c.Prev(); k != nil; k, v, err = c.Prev() {
 		if err != nil {
 			return err
 		}
-		blockNum := binary.BigEndian.Uint64(k)
+		blockNum, k, v = fromDBFormat(k, v)
 		if blockNum < from {
 			break
 		}
 
-		err = f(k, v[:keyPrefixLen], v[keyPrefixLen:])
+		err = f(blockNum, k, v)
 		if err != nil {
 			return err
 		}
@@ -498,17 +500,19 @@ func walkReverse(c ethdb.CursorDupSort, from, to uint64, keyPrefixLen int, f fun
 	return nil
 }
 
-func walk(c ethdb.CursorDupSort, from, to uint64, keyPrefixLen int, f func(kk, k, v []byte) error) error {
+func walk(c ethdb.CursorDupSort, from, to uint64, keyPrefixLen int, f func(blockN uint64, k, v []byte) error) error {
+	fromDBFormat := FromDBFormat(keyPrefixLen)
+	var blockNum uint64
 	for k, v, err := c.Seek(dbutils.EncodeBlockNumber(from)); k != nil; k, v, err = c.Next() {
 		if err != nil {
 			return err
 		}
-		blockNum := binary.BigEndian.Uint64(k)
+		blockNum, k, v = fromDBFormat(k, v)
 		if blockNum > to {
 			break
 		}
 
-		err = f(k, v[:keyPrefixLen], v[keyPrefixLen:])
+		err = f(blockNum, k, v)
 		if err != nil {
 			return err
 		}
@@ -521,7 +525,7 @@ func findInStorageChangeSet2(c ethdb.CursorDupSort, blockNumber uint64, keyPrefi
 	return doSearch2(
 		c, blockNumber,
 		keyPrefixLen,
-		k[0:keyPrefixLen],
+		k[:keyPrefixLen],
 		k[keyPrefixLen+common.IncarnationLength:keyPrefixLen+common.HashLength+common.IncarnationLength],
 		binary.BigEndian.Uint64(k[keyPrefixLen:]), /* incarnation */
 	)
@@ -545,35 +549,58 @@ func doSearch2(
 	keyBytesToFind []byte,
 	incarnation uint64,
 ) ([]byte, error) {
-	blockBytes := dbutils.EncodeBlockNumber(blockNumber)
+	fromDBFormat := FromDBFormat(keyPrefixLen)
 	if incarnation == 0 {
-		for k, v, err := c.SeekBothRange(blockBytes, addrBytesToFind); k != nil; k, v, err = c.Next() {
+		seek := make([]byte, 8+keyPrefixLen)
+		binary.BigEndian.PutUint64(seek, blockNumber)
+		copy(seek[8:], addrBytesToFind)
+		for k, v, err := c.Seek(seek); k != nil; k, v, err = c.Next() {
 			if err != nil {
 				return nil, err
 			}
-			if !bytes.HasPrefix(v, addrBytesToFind) {
-				return nil, nil
+			_, k, v = fromDBFormat(k, v)
+			if !bytes.HasPrefix(k, addrBytesToFind) {
+				return nil, ErrNotFound
 			}
 
-			stHash := v[keyPrefixLen+common.IncarnationLength : keyPrefixLen+common.IncarnationLength+common.HashLength]
+			stHash := k[keyPrefixLen+common.IncarnationLength:]
 			if bytes.Equal(stHash, keyBytesToFind) {
-				return v[keyPrefixLen+common.IncarnationLength+common.HashLength:], nil
+				return v, nil
 			}
 		}
+		return nil, ErrNotFound
 	}
 
-	find := make([]byte, keyPrefixLen+common.IncarnationLength+len(keyBytesToFind))
-	copy(find, addrBytesToFind)
-	binary.BigEndian.PutUint64(find[keyPrefixLen:], incarnation)
-	copy(find[keyPrefixLen+common.IncarnationLength:], keyBytesToFind)
-
-	_, v, err := c.SeekBothRange(blockBytes, find)
+	seek := make([]byte, 8+keyPrefixLen+common.IncarnationLength)
+	binary.BigEndian.PutUint64(seek, blockNumber)
+	copy(seek[8:], addrBytesToFind)
+	binary.BigEndian.PutUint64(seek[8+keyPrefixLen:], incarnation)
+	k, v, err := c.SeekBothRange(seek, keyBytesToFind)
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.HasPrefix(v, find) {
-		return nil, nil
+	if k == nil {
+		return nil, ErrNotFound
 	}
+	if !bytes.HasPrefix(v, keyBytesToFind) {
+		return nil, ErrNotFound
+	}
+	_, _, v = fromDBFormat(k, v)
+	return v, nil
+}
 
-	return v[keyPrefixLen+common.IncarnationLength:], nil
+func encodeStorage2(blockN uint64, s *ChangeSet, keyPrefixLen uint32, f func(k, v []byte) error) error {
+	sort.Sort(s)
+	keyPart := keyPrefixLen + common.IncarnationLength
+	for _, cs := range s.Changes {
+		newK := make([]byte, 8+keyPart)
+		binary.BigEndian.PutUint64(newK, blockN)
+		copy(newK[8:], cs.Key[:keyPart])
+		newV := make([]byte, 0, common.HashLength+len(cs.Value))
+		newV = append(append(newV, cs.Key[keyPart:]...), cs.Value...)
+		if err := f(newK, newV); err != nil {
+			return err
+		}
+	}
+	return nil
 }

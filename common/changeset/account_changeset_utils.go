@@ -100,16 +100,17 @@ func findInAccountChangeSetBytes(b []byte, k []byte, keyLen int) ([]byte, error)
 	return b[valOffset+idx0 : valOffset+idx1], nil
 }
 
-func findInAccountChangeSet(c ethdb.CursorDupSort, blockNumber uint64, k []byte, keyLen int) ([]byte, error) {
-	blockBytes := dbutils.EncodeBlockNumber(blockNumber)
-	_, v, err := c.SeekBothRange(blockBytes, k)
+func findInAccountChangeSet(c ethdb.CursorDupSort, blockNumber uint64, key []byte, keyLen int) ([]byte, error) {
+	fromDBFormat := FromDBFormat(keyLen)
+	k, v, err := c.SeekBothRange(dbutils.EncodeBlockNumber(blockNumber), key)
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.HasPrefix(v, k) {
+	_, k, v = fromDBFormat(k, v)
+	if !bytes.HasPrefix(k, key) {
 		return nil, nil
 	}
-	return v[keyLen:], nil
+	return v, nil
 }
 
 func decodeAccountsWithKeyLen(b []byte, keyLen uint32, h *ChangeSet) error {
@@ -205,4 +206,18 @@ func encodeAccounts(s *ChangeSet) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func encodeAccounts2(blockN uint64, s *ChangeSet, f func(k, v []byte) error) error {
+	sort.Sort(s)
+	for _, cs := range s.Changes {
+		newK := dbutils.EncodeBlockNumber(blockN)
+		newV := make([]byte, len(cs.Key)+len(cs.Value))
+		copy(newV, cs.Key)
+		copy(newV[len(cs.Key):], cs.Value)
+		if err := f(newK, newV); err != nil {
+			return err
+		}
+	}
+	return nil
 }
