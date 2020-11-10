@@ -148,10 +148,10 @@ func Walk(db ethdb.Database, bucket string, startkey []byte, fixedbits int, walk
 	})
 }
 
-func Truncate(db ethdb.Tx, from uint64) error {
+func Truncate(tx ethdb.Tx, from uint64) error {
 	keyStart := dbutils.EncodeBlockNumber(from)
 
-	c := db.(ethdb.HasTx).Tx().CursorDupSort(dbutils.PlainAccountChangeSetBucket)
+	c := tx.CursorDupSort(dbutils.PlainAccountChangeSetBucket)
 	defer c.Close()
 	for k, _, err := c.Seek(keyStart); k != nil; k, _, err = c.NextNoDup() {
 		if err != nil {
@@ -162,7 +162,7 @@ func Truncate(db ethdb.Tx, from uint64) error {
 			return err
 		}
 	}
-	c2 := db.(ethdb.HasTx).Tx().CursorDupSort(dbutils.PlainStorageChangeSetBucket)
+	c2 := tx.CursorDupSort(dbutils.PlainStorageChangeSetBucket)
 	defer c2.Close()
 	for k, _, err := c2.Seek(keyStart); k != nil; k, _, err = c2.NextNoDup() {
 		if err != nil {
